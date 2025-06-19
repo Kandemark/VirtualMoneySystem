@@ -293,7 +293,7 @@ THE SOFTWARE.
 
 ---
 
-> © 2025 [Your Name or Organization] — Designed for extensibility, security, and real-world readiness.
+> © 2025 Kandemark — Designed for extensibility, security, and real-world readiness.
 
 
 ## 🏁 Getting Started
