@@ -161,6 +161,141 @@ Supports integration with:
 
 ---
 
+
+## 📊 Currency & Stock Support
+
+- Realtime Forex (FX) for:
+- USD, KES, EUR, GBP, BTC, ETH
+- Historical currency rate storage
+- Stock data integration (via IEX, Alpha Vantage)
+- Simulated stock holdings and tracking per user
+
+---
+
+## 🔐 Security Features
+
+- JWT authentication with access/refresh token lifecycle
+- AES-256 encryption for sensitive data
+- Device trust validation and fingerprinting
+- Session sync across desktop, mobile, and USSD platforms
+- Secret recovery vault using Shamir Secret Sharing
+- Sanctions & PEP list screening (OFAC, UN, PEPs)
+
+---
+
+## 🧩 Extensibility
+
+- Plugin marketplace with dynamic feature registration
+- Smart-contract-like rules defined via `contracts/`
+- Custom FX conversion triggers (e.g., auto-convert at threshold rate)
+- Multi-tenant architecture for organizational isolation and scalability
+
+---
+
+## 🤖 AI & Fraud Detection *(Optional Modules)*
+
+- Real-time anomaly detection engine
+- Transaction behavior profiling
+- ML model support and pluggable detection modules stored in `ai/`
+
+---
+
+## 🌍 International Compliance
+
+- KYC (Know Your Customer) data collection & document verification
+- AML (Anti-Money Laundering) triggers and behavioral analysis
+- Geo-restriction enforcement per region
+- Tax engine for region-specific:
+- VAT (Value-Added Tax)
+- Withholding Tax (WHT)
+- Income tax reporting
+
+---
+
+## 📥 Data Export
+
+Users can export:
+
+- 📜 Wallet history
+- 🧾 Tax reports
+- ⚖️ Dispute logs
+- 🪪 KYC attachments (e.g., ID, Proof of Address)
+
+---
+
+## 🧩 Integrations
+
+Supports integration with:
+
+- 📱 Mobile money platforms (e.g., M-Pesa, Airtel Money)
+- ☎️ USSD and SMS interfaces
+- 🏦 Banking APIs (e.g., PesaLink, Open Banking protocols)
+- 🌐 External services via REST and gRPC endpoints
+
+---
+
+## 🧠 Simulations
+
+Use the `/simulation/` module to:
+
+- Test economies and virtual currencies
+- Model real-world scenarios with adjustable parameters
+- Provide a training or learning environment
+
+---
+
+## 💬 Support & Contributions
+
+We welcome feedback, contributions, and community involvement:
+
+- 🐛 **Issues**: [GitHub Issues](https://github.com/kandemark/VirtualMoneySystem/issues)
+- 📧 **Email**: kandemark711@gmail.com
+- 💬 **Community**: Discord / Telegram (Coming Soon)
+
+To contribute, see `CONTRIBUTING.md`.
+
+---
+
+## 📄 License
+
+MIT License
+
+Copyright (c) 2025 [Your Name]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights  
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell  
+copies of the Software, and to permit persons to whom the Software is  
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in  
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR  
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,  
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER  
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN  
+THE SOFTWARE.
+
+
+---
+
+## 🏁 Roadmap Highlights
+
+- ✅ Kotlin-based mobile client
+- 🔐 Zero-Knowledge login extension
+- 🧩 Plugin marketplace and dev portal
+- ⛓️ Blockchain layer with testnet synchronization
+- 🧠 AI-driven fraud engine *(beta)*
+
+---
+
+> © 2025 [Your Name or Organization] — Designed for extensibility, security, and real-world readiness.
+
+
 ## 🏁 Getting Started
 
 ```bash
