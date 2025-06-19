@@ -79,6 +79,88 @@ Supports integration with:
 
 ---
 
+## 🌐 API Access
+
+- **REST API**: All endpoints are accessible under: /api/v1/*   
+- **gRPC API**: Available via protocol buffer definitions in the `proto/` folder
+- **Example REST Endpoint**: GET /api/v1/wallets/{user_id}/balance
+
+
+---
+
+## 📊 Currency & Stock Support
+
+- Supports **real-time FX rates** for:
+- USD
+- KES
+- EUR
+- GBP
+- BTC
+- ETH
+- Stores **historical currency rates** for audit/compliance
+- Integrates with stock market APIs (e.g., IEX, Alpha Vantage) to:
+- Fetch **live stock prices**
+- Simulate **user stock portfolios**
+
+---
+
+## 🔐 Security Features
+
+- **JWT Authentication** with access/refresh token lifecycle
+- **AES-256 encryption** for sensitive data (wallets, transactions, identities)
+- **Device trust validation** to detect unknown logins
+- **Session synchronization** across multiple platforms (mobile, USSD, desktop)
+- **Secret recovery vault** (based on Shamir Secret Sharing)
+- **Sanctions & PEP screening** for compliance:
+- OFAC
+- UN Sanctions
+- Politically Exposed Persons (PEPs)
+
+---
+
+## 🧩 Extensibility
+
+- Modular **plugin marketplace**
+- **Smart-contract-like logic** via internal rule engine (`/contracts`)
+- **Custom FX triggers**:
+- e.g., “Convert USD to KES when rate > 152”
+- **Multi-tenant support**:
+- Separate branding
+- Data isolation
+- Tenant-specific rules
+
+---
+
+## 🤖 AI & Fraud Detection *(Optional Modules)*
+
+- **Real-time anomaly detection**:
+- Detects transaction spikes, unusual behavior
+- **Behavior classification**:
+- Flags users with patterns matching fraud risk profiles
+- **ML-ready models**:
+- Stored in `ai/`
+- Pluggable into core engine via `AnomalyDetector.cpp`
+
+---
+
+## 🌍 International Compliance
+
+- **KYC**:
+- Identity form collection
+- Document upload & validation
+- **AML**:
+- Auto-flagging for transaction laundering patterns
+- **Geo-restriction engine**:
+- Automatically restricts or adjusts features based on user country
+- **Tax engine**:
+- Generates reports and applies rules for:
+  - VAT (Value-Added Tax)
+  - WHT (Withholding Tax)
+  - Income tax
+
+
+---
+
 ## 🏁 Getting Started
 
 ```bash
