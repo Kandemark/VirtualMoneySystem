@@ -1,0 +1,211 @@
+{
+  "currencyName": "Credits",
+  "currencySymbol": "₡",
+  "currencyDecimals": 2,
+  "startingBalance": 1000,
+  "maxBalance": 1000000,
+  "minTransferAmount": 1,
+  "maxTransferAmount": 10000,
+  "transactionFeePercent": 1.5,
+  "transactionFeeMinimum": 0.1,
+  "transactionFeeMaximum": 100,
+  "allowNegativeBalance": false,
+  "roundingMode": "HALF_UP",
+  "database": {
+    "type": "sqlite",
+    "file": "./data/virtualmoney.db",
+    "autoBackup": true,
+    "backupIntervalHours": 24,
+    "maxConnections": 10,
+    "encryption": false,
+    "encryptionKey": "",
+    "replication": {
+      "enabled": false,
+      "replicaSet": []
+    },
+    "connectionTimeoutSeconds": 30,
+    "readOnly": false,
+    "cacheSizeMB": 64,
+    "journalMode": "WAL"
+  },
+  "adminUsers": [
+    "adminUserId1",
+    "adminUserId2",
+    "superAdminUserId"
+  ],
+  "userRoles": [
+    "user",
+    "moderator",
+    "admin",
+    "superadmin",
+    "auditor",
+    "support"
+  ],
+  "rolePermissions": {
+    "user": ["view_balance", "transfer", "claim_reward"],
+    "moderator": ["view_balance", "transfer", "claim_reward", "view_users", "freeze_account"],
+    "admin": ["*"],
+    "superadmin": ["*"],
+    "auditor": ["view_balance", "view_transactions", "export_data"],
+    "support": ["view_balance", "reset_password"]
+  },
+  "logging": {
+    "enabled": true,
+    "level": "info",
+    "logToFile": true,
+    "logFilePath": "./logs/system.log",
+    "maxLogSizeMB": 10,
+    "maxLogFiles": 5,
+    "logToConsole": true,
+    "logRetentionDays": 30,
+    "logFormat": "json",
+    "logSensitiveData": false,
+    "logApiRequests": true,
+    "logDatabaseQueries": false
+  },
+  "security": {
+    "enableRateLimiting": true,
+    "maxRequestsPerMinute": 60,
+    "jwtSecret": "REPLACE_WITH_SECURE_SECRET",
+    "jwtExpirationMinutes": 120,
+    "passwordPolicy": {
+      "minLength": 8,
+      "requireNumbers": true,
+      "requireSpecial": true,
+      "requireUppercase": true,
+      "requireLowercase": true,
+      "passwordHistoryCount": 5,
+      "passwordExpiryDays": 90
+    },
+    "enable2FA": true,
+    "2faProviders": ["email", "totp", "sms"],
+    "allowedIPs": [],
+    "blockedIPs": [],
+    "accountLockoutThreshold": 5,
+    "accountLockoutDurationMinutes": 30,
+    "sessionTimeoutMinutes": 60,
+    "enableCaptcha": true,
+    "captchaProvider": "recaptcha",
+    "captchaSiteKey": "",
+    "captchaSecretKey": ""
+  },
+  "api": {
+    "enabled": true,
+    "port": 3000,
+    "host": "0.0.0.0",
+    "rateLimit": 100,
+    "allowedOrigins": ["*"],
+    "enableSwagger": true,
+    "swaggerPath": "/docs",
+    "enableGraphQL": false,
+    "graphqlPath": "/graphql",
+    "enableApiKeys": true,
+    "apiKeyHeader": "x-api-key",
+    "apiKeyExpirationDays": 30,
+    "enableCORS": true,
+    "corsOptions": {
+      "methods": ["GET", "POST", "PUT", "DELETE"],
+      "allowedHeaders": ["Content-Type", "Authorization", "x-api-key"]
+    }
+  },
+  "features": {
+    "enableTransfers": true,
+    "enableLeaderboards": true,
+    "leaderboardSize": 50,
+    "enableDailyRewards": true,
+    "dailyRewardAmount": 50,
+    "dailyRewardStreakBonus": 10,
+    "enableInterest": false,
+    "interestRatePercent": 0.1,
+    "interestCompounding": "monthly",
+    "enableNotifications": true,
+    "notificationChannels": ["email", "inapp", "sms"],
+    "enableAchievements": true,
+    "achievementList": [
+      {"id": "first_transfer", "name": "First Transfer", "reward": 10},
+      {"id": "daily_streak_7", "name": "7-Day Streak", "reward": 25}
+    ],
+    "enableReferralProgram": true,
+    "referralBonus": 100,
+    "enableAccountFreeze": true,
+    "enableTransactionHistory": true,
+    "transactionHistoryLimit": 1000
+  },
+  "maintenance": {
+    "autoCleanup": true,
+    "cleanupIntervalHours": 48,
+    "removeInactiveAccountsAfterDays": 180,
+    "autoOptimizeDatabase": true,
+    "optimizeIntervalHours": 168,
+    "autoPurgeLogs": true,
+    "purgeLogsOlderThanDays": 60
+  },
+  "backup": {
+    "enabled": true,
+    "backupPath": "./backups",
+    "backupRetentionDays": 14,
+    "backupSchedule": "0 3 * * *",
+    "cloudBackup": {
+      "enabled": false,
+      "provider": "",
+      "credentials": {},
+      "bucketName": "",
+      "region": ""
+    }
+  },
+  "localization": {
+    "defaultLanguage": "en",
+    "supportedLanguages": ["en", "es", "fr", "de", "zh", "ru", "ja"],
+    "fallbackLanguage": "en",
+    "dateFormat": "YYYY-MM-DD",
+    "timeZone": "UTC"
+  },
+  "support": {
+    "contactEmail": "support@example.com",
+    "faqUrl": "https://example.com/faq",
+    "supportPortalUrl": "https://example.com/support",
+    "liveChatEnabled": true,
+    "supportHours": "09:00-18:00"
+  },
+  "branding": {
+    "appName": "Enhanced Virtual Money System",
+    "logoPath": "./assets/logo.png",
+    "theme": "dark",
+    "primaryColor": "#3498db",
+    "secondaryColor": "#2ecc71"
+  },
+  "integrations": {
+    "emailProvider": "smtp",
+    "smtp": {
+      "host": "smtp.example.com",
+      "port": 587,
+      "secure": false,
+      "username": "",
+      "password": "",
+      "fromEmail": "noreply@example.com"
+    },
+    "smsProvider": "twilio",
+    "twilio": {
+      "accountSid": "",
+      "authToken": "",
+      "fromNumber": ""
+    },
+    "webhooks": {
+      "enabled": false,
+      "urls": []
+    }
+  },
+  "analytics": {
+    "enabled": true,
+    "provider": "google_analytics",
+    "trackingId": "",
+    "collectUsageStats": true
+  },
+  "compliance": {
+    "gdpr": true,
+    "ccpa": false,
+    "dataRetentionDays": 365,
+    "enableAuditLogs": true
+  }
+}
+
