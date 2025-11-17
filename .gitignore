@@ -1,0 +1,24 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.exe
+*.dll
+
+# C/C++ specific
+*.out
+*.gch
+*.pch
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.vcxproj*
+*.sln
+*.suo
+
+# VS Code
+.vscode/
