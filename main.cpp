@@ -7,6 +7,8 @@
 #include <mutex>
 #include <cstdlib>
 #include <ctime>
+#include <iomanip>
+#include <sstream>
 
 // Use a single, global DatabaseManager instance for the entire application.
 DatabaseManager dbManager("vms.db");
@@ -151,6 +153,7 @@ int main()
     });
 
     // Endpoint to create a transaction.
+    // This now also saves the transaction to the database.
     CROW_ROUTE(app, "/transaction/create").methods("POST"_method)
     ([](const crow::request& req){
         auto body = crow::json::load(req.body);
@@ -175,12 +178,45 @@ int main()
         Wallet receiverWallet = *receiverWalletOpt;
 
         if (transactionEngine.processTransaction(senderWallet, receiverWallet, amount)) {
+            // If the transaction is successful, update both wallets in the database
+            // and create a new transaction record.
             dbManager.updateWalletBalance(senderId, senderWallet.getBalance());
             dbManager.updateWalletBalance(receiverId, receiverWallet.getBalance());
+
+            Transaction newTransaction(senderId, receiverId, amount, senderWallet.getCurrency());
+            dbManager.createTransaction(newTransaction);
+
             return crow::response(200, "{\"status\": \"Transaction successful\"}");
         } else {
             return crow::response(400, "{\"error\": \"Transaction failed. Check for sufficient funds or matching currencies.\"}");
         }
+    });
+
+    // Endpoint to get a user's transaction history.
+    CROW_ROUTE(app, "/wallet/<string>/history")
+    ([](const std::string& userId){
+        std::lock_guard<std::mutex> lock(dbMutex);
+
+        auto history = dbManager.getTransactionHistory(userId);
+
+        crow::json::wvalue::list response_list;
+        for (const auto& tx : history) {
+            crow::json::wvalue tx_json;
+            tx_json["senderId"] = tx.getSenderId();
+            tx_json["receiverId"] = tx.getReceiverId();
+            tx_json["amount"] = tx.getAmount();
+            tx_json["currency"] = tx.getCurrency();
+
+            auto time_point = tx.getTimestamp();
+            std::time_t time = std::chrono::system_clock::to_time_t(time_point);
+            std::stringstream ss;
+            ss << std::put_time(std::gmtime(&time), "%Y-%m-%d %H:%M:%S");
+            tx_json["timestamp"] = ss.str();
+
+            response_list.push_back(tx_json);
+        }
+
+        return crow::response(crow::json::wvalue(response_list));
     });
 
     // Use a random port to avoid "Address already in use" errors in tests.

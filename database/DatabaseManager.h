@@ -3,7 +3,9 @@
 
 #include "sqlite3.h"
 #include "../core/Wallet.h"
+#include "../transactions/Transaction.h"
 #include <string>
+#include <vector>
 #include <memory>
 #include <optional>
 
@@ -54,6 +56,20 @@ public:
      * @return True if the update was successful, false otherwise.
      */
     bool updateWalletBalance(const std::string& userId, double newBalance);
+
+    /**
+     * @brief Creates a new transaction record in the database.
+     * @param transaction The Transaction object to save.
+     * @return True if the transaction was saved successfully, false otherwise.
+     */
+    bool createTransaction(const Transaction& transaction);
+
+    /**
+     * @brief Retrieves the transaction history for a given user.
+     * @param userId The ID of the user whose transaction history to retrieve.
+     * @return A vector of Transaction objects.
+     */
+    std::vector<Transaction> getTransactionHistory(const std::string& userId);
 
 private:
     sqlite3* db; // The SQLite database connection handle.
