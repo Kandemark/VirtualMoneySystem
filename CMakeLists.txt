@@ -4,6 +4,9 @@ project(VirtualMoneySystem)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Vendored SQLite3
+add_library(sqlite3_lib vendor/sqlite3/sqlite3.c)
+
 add_library(core_lib
     core/Wallet.cpp
     core/TransactionEngine.cpp
@@ -13,19 +16,27 @@ add_library(transactions_lib
     transactions/Transaction.cpp
 )
 
+add_library(database_lib
+    database/DatabaseManager.cpp
+)
+
 add_executable(VirtualMoneySystem main.cpp)
 
 target_include_directories(VirtualMoneySystem PRIVATE
     core
     transactions
+    database
     vendor/asio
     vendor/crow
+    vendor/sqlite3 # Add sqlite3 include directory
 )
 
 target_link_libraries(VirtualMoneySystem PRIVATE
     core_lib
     transactions_lib
+    database_lib
     -lpthread
+    sqlite3_lib # Link sqlite3 library
 )
 
 # Enable testing
@@ -45,5 +56,8 @@ add_test(NAME TestTransactionEngine COMMAND test_transaction_engine)
 
 # API tests
 add_executable(test_api tests/test_api.cpp)
-add_test(NAME TestAPI COMMAND test_api)
+# Generate a random port for the API test to avoid conflicts.
+string(RANDOM LENGTH 4 ALPHABET "0123456789" RANDOM_PORT_SUFFIX)
+set(API_TEST_PORT "1${RANDOM_PORT_SUFFIX}")
+add_test(NAME TestAPI COMMAND test_api ${API_TEST_PORT})
 set_tests_properties(TestAPI PROPERTIES DEPENDS VirtualMoneySystem)
