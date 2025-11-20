@@ -20,12 +20,36 @@ add_library(database_lib
     database/DatabaseManager.cpp
 )
 
+add_library(scheduler_lib
+    scheduler/JobScheduler.cpp
+    scheduler/CronEngine.cpp
+    scheduler/RecurringPayments.cpp
+)
+
+add_library(compliance_lib
+    compliance/KYCValidator.cpp
+    compliance/AMLScanner.cpp
+)
+
+add_library(api_lib
+    api/RESTServer.cpp
+    api/WalletEndpoints.cpp
+)
+
+add_library(analytics_lib
+    analytics/TransactionStats.cpp
+)
+
 add_executable(VirtualMoneySystem main.cpp)
 
 target_include_directories(VirtualMoneySystem PRIVATE
     core
     transactions
     database
+    scheduler
+    compliance
+    api
+    analytics
     vendor/asio
     vendor/crow
     vendor/sqlite3 # Add sqlite3 include directory
@@ -35,6 +59,10 @@ target_link_libraries(VirtualMoneySystem PRIVATE
     core_lib
     transactions_lib
     database_lib
+    scheduler_lib
+    compliance_lib
+    api_lib
+    analytics_lib
     -lpthread
     sqlite3_lib # Link sqlite3 library
 )

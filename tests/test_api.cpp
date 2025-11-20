@@ -78,6 +78,14 @@ void testTransactionAPI() {
     std::cout << "Transaction API tests passed!" << std::endl;
 }
 
+void testAnalyticsAPI() {
+    std::string response = exec("curl -s http://localhost:%d/analytics/transactions");
+    assert(response.find("\"total_count\":1") != std::string::npos);
+    assert(response.find("\"USD\":70") != std::string::npos);
+    
+    std::cout << "Analytics API tests passed!" << std::endl;
+}
+
 int main(int argc, char** argv) {
     if (argc > 1) {
         port = std::atoi(argv[1]);
@@ -107,6 +115,7 @@ int main(int argc, char** argv) {
             // Run the tests.
             testWalletAPI();
             testTransactionAPI();
+            testAnalyticsAPI();
         } catch (const std::exception& e) {
             std::cerr << "Test failed: " << e.what() << std::endl;
             kill(pid, SIGKILL); // Terminate the server process immediately.

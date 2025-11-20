@@ -1,7 +1,11 @@
-#include "crow.h"
 #include "core/Wallet.h"
 #include "core/TransactionEngine.h"
 #include "database/DatabaseManager.h"
+#include "scheduler/JobScheduler.h"
+#include "scheduler/RecurringPayments.h"
+#include "api/RESTServer.h"
+#include "api/WalletEndpoints.h"
+#include "analytics/TransactionStats.h"
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -26,167 +30,30 @@ int main()
         return 1;
     }
 
-    crow::SimpleApp app;
+    // Initialize Scheduler
+    JobScheduler scheduler;
+    RecurringPayments recurringPayments(transactionEngine, dbManager);
 
-    // Endpoint to create a new wallet.
-    CROW_ROUTE(app, "/wallet/create").methods("POST"_method)
-    ([](const crow::request& req){
-        auto body = crow::json::load(req.body);
-        if (!body || !body.has("userId") || !body.has("currency")) {
-            return crow::response(400, "{\"error\": \"Missing userId or currency\"}");
-        }
+    // Schedule recurring payment checks every 60 seconds
+    scheduler.schedule([&recurringPayments]() {
+        recurringPayments.processPayments();
+    }, 60);
 
-        std::string userId = body["userId"].s();
-        std::string currency = body["currency"].s();
+    scheduler.start();
 
-        // Lock the mutex to ensure exclusive database access.
-        std::lock_guard<std::mutex> lock(dbMutex);
+    // Initialize Analytics
+    TransactionStats transactionStats(transactionEngine);
 
-        if (dbManager.getWallet(userId)) {
-            return crow::response(409, "{\"error\": \"Wallet for this user already exists\"}");
-        }
-
-        Wallet newWallet(userId, currency);
-        if (!dbManager.createWallet(newWallet)) {
-            return crow::response(500, "{\"error\": \"Failed to create wallet in database\"}");
-        }
-
-        crow::json::wvalue response;
-        response["userId"] = userId;
-        response["currency"] = currency;
-        response["balance"] = newWallet.getBalance();
-
-        return crow::response(201, response);
-    });
-
-    // Endpoint to get a wallet's balance.
-    CROW_ROUTE(app, "/wallet/<string>/balance")
-    ([](const std::string& userId){
-        std::lock_guard<std::mutex> lock(dbMutex);
-        auto wallet = dbManager.getWallet(userId);
-        if (!wallet) {
-            return crow::response(404, "{\"error\": \"Wallet not found\"}");
-        }
-
-        crow::json::wvalue response;
-        response["userId"] = userId;
-        response["currency"] = wallet->getCurrency();
-        response["balance"] = wallet->getBalance();
-
-        return crow::response(200, response);
-    });
-
-    // Endpoint to deposit funds.
-    CROW_ROUTE(app, "/wallet/deposit").methods("POST"_method)
-    ([](const crow::request& req){
-        auto body = crow::json::load(req.body);
-        if (!body || !body.has("userId") || !body.has("amount")) {
-            return crow::response(400, "{\"error\": \"Missing userId or amount\"}");
-        }
-
-        std::string userId = body["userId"].s();
-        double amount = body["amount"].d();
-
-        std::lock_guard<std::mutex> lock(dbMutex);
-
-        auto walletOpt = dbManager.getWallet(userId);
-        if (!walletOpt) {
-            return crow::response(404, "{\"error\": \"Wallet not found\"}");
-        }
-        Wallet wallet = *walletOpt;
-
-        try {
-            wallet.deposit(amount);
-        } catch (const std::invalid_argument& e) {
-            return crow::response(400, std::string("{\"error\": \"") + e.what() + "\"}");
-        }
-
-        if (!dbManager.updateWalletBalance(userId, wallet.getBalance())) {
-            return crow::response(500, "{\"error\": \"Failed to update wallet balance\"}");
-        }
-
-        crow::json::wvalue response;
-        response["userId"] = userId;
-        response["balance"] = wallet.getBalance();
-
-        return crow::response(200, response);
-    });
-
-    // Endpoint to withdraw funds.
-    CROW_ROUTE(app, "/wallet/withdraw").methods("POST"_method)
-    ([](const crow::request& req){
-        auto body = crow::json::load(req.body);
-        if (!body || !body.has("userId") || !body.has("amount")) {
-            return crow::response(400, "{\"error\": \"Missing userId or amount\"}");
-        }
-
-        std::string userId = body["userId"].s();
-        double amount = body["amount"].d();
-
-        std::lock_guard<std::mutex> lock(dbMutex);
-
-        auto walletOpt = dbManager.getWallet(userId);
-        if (!walletOpt) {
-            return crow::response(404, "{\"error\": \"Wallet not found\"}");
-        }
-        Wallet wallet = *walletOpt;
-
-        try {
-            if (!wallet.withdraw(amount)) {
-                return crow::response(400, "{\"error\": \"Insufficient funds\"}");
-            }
-        } catch (const std::invalid_argument& e) {
-            return crow::response(400, std::string("{\"error\": \"") + e.what() + "\"}");
-        }
-
-        if (!dbManager.updateWalletBalance(userId, wallet.getBalance())) {
-            return crow::response(500, "{\"error\": \"Failed to update wallet balance\"}");
-        }
-
-        crow::json::wvalue response;
-        response["userId"] = userId;
-        response["balance"] = wallet.getBalance();
-
-        return crow::response(200, response);
-    });
-
-    // Endpoint to create a transaction.
-    CROW_ROUTE(app, "/transaction/create").methods("POST"_method)
-    ([](const crow::request& req){
-        auto body = crow::json::load(req.body);
-        if (!body || !body.has("senderId") || !body.has("receiverId") || !body.has("amount")) {
-            return crow::response(400, "{\"error\": \"Missing senderId, receiverId, or amount\"}");
-        }
-
-        std::string senderId = body["senderId"].s();
-        std::string receiverId = body["receiverId"].s();
-        double amount = body["amount"].d();
-
-        std::lock_guard<std::mutex> lock(dbMutex);
-
-        auto senderWalletOpt = dbManager.getWallet(senderId);
-        auto receiverWalletOpt = dbManager.getWallet(receiverId);
-
-        if (!senderWalletOpt || !receiverWalletOpt) {
-            return crow::response(404, "{\"error\": \"Sender or receiver wallet not found\"}");
-        }
-
-        Wallet senderWallet = *senderWalletOpt;
-        Wallet receiverWallet = *receiverWalletOpt;
-
-        if (transactionEngine.processTransaction(senderWallet, receiverWallet, amount)) {
-            dbManager.updateWalletBalance(senderId, senderWallet.getBalance());
-            dbManager.updateWalletBalance(receiverId, receiverWallet.getBalance());
-            return crow::response(200, "{\"status\": \"Transaction successful\"}");
-        } else {
-            return crow::response(400, "{\"error\": \"Transaction failed. Check for sufficient funds or matching currencies.\"}");
-        }
-    });
+    // Initialize API
+    WalletEndpoints walletEndpoints(dbManager, transactionEngine, dbMutex, transactionStats);
+    RESTServer server(walletEndpoints);
 
     // Use a random port to avoid "Address already in use" errors in tests.
     srand(time(0));
     int port = 10000 + (rand() % 10000);
-    std::cout << "Starting server on port " << port << std::endl;
-
-    app.port(port).multithreaded().run();
+    
+    server.run(port);
+    
+    // Stop scheduler on exit (though app.run() blocks)
+    scheduler.stop();
 }
