@@ -78,6 +78,30 @@ void testTransactionAPI() {
     std::cout << "Transaction API tests passed!" << std::endl;
 }
 
+void testHistoryAPI() {
+    // Create wallets for history test
+    exec("curl -s -X POST -d '{\"userId\":\"userA\", \"currency\":\"USD\"}' http://localhost:%d/wallet/create");
+    exec("curl -s -X POST -d '{\"userId\":\"userB\", \"currency\":\"USD\"}' http://localhost:%d/wallet/create");
+
+    // Deposit to userA's wallet
+    exec("curl -s -X POST -d '{\"userId\":\"userA\", \"amount\":200}' http://localhost:%d/wallet/deposit");
+
+    // Create a transaction from userA to userB
+    exec("curl -s -X POST -d '{\"senderId\":\"userA\", \"receiverId\":\"userB\", \"amount\":50}' http://localhost:%d/transaction/create");
+
+    // Get userA's history and verify the transaction is present
+    std::string responseA = exec("curl -s http://localhost:%d/wallet/userA/history");
+    assert(responseA.find("\"senderId\":\"userA\"") != std::string::npos);
+    assert(responseA.find("\"receiverId\":\"userB\"") != std::string::npos);
+    assert(responseA.find("\"amount\":50") != std::string::npos);
+
+    // Get userB's history and verify the transaction is present
+    std::string responseB = exec("curl -s http://localhost:%d/wallet/userB/history");
+    assert(responseB.find("\"senderId\":\"userA\"") != std::string::npos);
+    assert(responseB.find("\"receiverId\":\"userB\"") != std::string::npos);
+    assert(responseB.find("\"amount\":50") != std::string::npos);
+
+    std::cout << "History API tests passed!" << std::endl;
 void testAnalyticsAPI() {
     std::string response = exec("curl -s http://localhost:%d/analytics/transactions");
     assert(response.find("\"total_count\":1") != std::string::npos);
@@ -115,6 +139,7 @@ int main(int argc, char** argv) {
             // Run the tests.
             testWalletAPI();
             testTransactionAPI();
+            testHistoryAPI();
             testAnalyticsAPI();
         } catch (const std::exception& e) {
             std::cerr << "Test failed: " << e.what() << std::endl;
