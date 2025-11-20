@@ -1,7 +1,11 @@
-#include "crow.h"
 #include "core/Wallet.h"
 #include "core/TransactionEngine.h"
 #include "database/DatabaseManager.h"
+#include "scheduler/JobScheduler.h"
+#include "scheduler/RecurringPayments.h"
+#include "api/RESTServer.h"
+#include "api/WalletEndpoints.h"
+#include "analytics/TransactionStats.h"
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -28,21 +32,19 @@ int main()
         return 1;
     }
 
-    crow::SimpleApp app;
+    // Initialize Scheduler
+    JobScheduler scheduler;
+    RecurringPayments recurringPayments(transactionEngine, dbManager);
 
-    // Endpoint to create a new wallet.
-    CROW_ROUTE(app, "/wallet/create").methods("POST"_method)
-    ([](const crow::request& req){
-        auto body = crow::json::load(req.body);
-        if (!body || !body.has("userId") || !body.has("currency")) {
-            return crow::response(400, "{\"error\": \"Missing userId or currency\"}");
-        }
+    // Schedule recurring payment checks every 60 seconds
+    scheduler.schedule([&recurringPayments]() {
+        recurringPayments.processPayments();
+    }, 60);
 
-        std::string userId = body["userId"].s();
-        std::string currency = body["currency"].s();
+    scheduler.start();
 
-        // Lock the mutex to ensure exclusive database access.
-        std::lock_guard<std::mutex> lock(dbMutex);
+    // Initialize Analytics
+    TransactionStats transactionStats(transactionEngine);
 
         if (dbManager.getWallet(userId)) {
             return crow::response(409, "{\"error\": \"Wallet for this user already exists\"}");
@@ -191,6 +193,9 @@ int main()
             return crow::response(400, "{\"error\": \"Transaction failed. Check for sufficient funds or matching currencies.\"}");
         }
     });
+    // Initialize API
+    WalletEndpoints walletEndpoints(dbManager, transactionEngine, dbMutex, transactionStats);
+    RESTServer server(walletEndpoints);
 
     // Endpoint to get a user's transaction history.
     CROW_ROUTE(app, "/wallet/<string>/history")
@@ -222,7 +227,9 @@ int main()
     // Use a random port to avoid "Address already in use" errors in tests.
     srand(time(0));
     int port = 10000 + (rand() % 10000);
-    std::cout << "Starting server on port " << port << std::endl;
-
-    app.port(port).multithreaded().run();
+    
+    server.run(port);
+    
+    // Stop scheduler on exit (though app.run() blocks)
+    scheduler.stop();
 }

@@ -23,5 +23,4 @@ Makefile
 # VS Code
 .vscode/
 
-# Vendor libraries
-vendor/
+
