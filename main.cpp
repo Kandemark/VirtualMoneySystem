@@ -6,6 +6,8 @@
 #include "api/RESTServer.h"
 #include "api/WalletEndpoints.h"
 #include "analytics/TransactionStats.h"
+#include "analytics/FraudSignalDetector.h"
+#include "transactions/TransactionLimits.h"
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -43,9 +45,13 @@ int main()
 
     // Initialize Analytics
     TransactionStats transactionStats(transactionEngine);
+    FraudSignalDetector fraudDetector(transactionEngine);
+
+    // Initialize Limits
+    TransactionLimits transactionLimits(50000.0); // Limit of 50,000 units
 
     // Initialize API
-    WalletEndpoints walletEndpoints(dbManager, transactionEngine, dbMutex, transactionStats);
+    WalletEndpoints walletEndpoints(dbManager, transactionEngine, dbMutex, transactionStats, fraudDetector, transactionLimits);
     RESTServer server(walletEndpoints);
 
     // Use a random port to avoid "Address already in use" errors in tests.

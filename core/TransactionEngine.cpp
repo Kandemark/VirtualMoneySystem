@@ -13,10 +13,18 @@ bool TransactionEngine::processTransaction(Wallet& senderWallet, Wallet& receive
     if (senderWallet.withdraw(amount)) {
         // If the withdrawal is successful, deposit the same amount into the receiver's wallet.
         receiverWallet.deposit(amount);
+        
+        // Record the transaction
+        history.emplace_back(senderWallet.getUserId(), receiverWallet.getUserId(), amount, senderWallet.getCurrency());
+        
         // The transaction is now complete.
         return true;
     }
 
     // If the withdrawal fails, the transaction is unsuccessful.
     return false;
+}
+
+const std::vector<Transaction>& TransactionEngine::getTransactionHistory() const {
+    return history;
 }

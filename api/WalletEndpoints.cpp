@@ -1,9 +1,10 @@
 #include "WalletEndpoints.h"
 #include <iomanip>
 #include <sstream>
+#include <iostream> // For logging
 
-WalletEndpoints::WalletEndpoints(DatabaseManager& db, TransactionEngine& te, std::mutex& mtx, TransactionStats& stats)
-    : dbManager(db), transactionEngine(te), dbMutex(mtx), transactionStats(stats) {}
+WalletEndpoints::WalletEndpoints(DatabaseManager& db, TransactionEngine& te, std::mutex& mtx, TransactionStats& stats, FraudSignalDetector& fraud, TransactionLimits& limits)
+    : dbManager(db), transactionEngine(te), dbMutex(mtx), transactionStats(stats), fraudDetector(fraud), transactionLimits(limits) {}
 
 void WalletEndpoints::registerRoutes(crow::SimpleApp& app) {
     
@@ -160,6 +161,11 @@ void WalletEndpoints::registerRoutes(crow::SimpleApp& app) {
         std::string receiverId = body["receiverId"].s();
         double amount = body["amount"].d();
 
+        // Check Limits
+        if (!transactionLimits.isWithinLimit(amount)) {
+            return crow::response(400, "{\"error\": \"Transaction amount exceeds limit\"}");
+        }
+
         std::lock_guard<std::mutex> lock(dbMutex);
 
         auto senderWalletOpt = dbManager.getWallet(senderId);
@@ -181,9 +187,23 @@ void WalletEndpoints::registerRoutes(crow::SimpleApp& app) {
             dbManager.createTransaction(newTransaction);
 
             // AML Check
-            amlScanner.isSuspicious(newTransaction);
+            if (amlScanner.isSuspicious(newTransaction)) {
+                std::cout << "[WARN] Suspicious transaction detected: " << amount << " " << senderWallet.getCurrency() << std::endl;
+            }
             
-            return crow::response(200, "{\"status\": \"Transaction successful\"}");
+            // Fraud Check (Rapid Fire)
+            if (fraudDetector.isRapidFire(senderId, 5, 60)) {
+                std::cout << "[WARN] Potential fraud (rapid fire) detected for user: " << senderId << std::endl;
+            }
+            
+            // Generate Receipt
+            std::string receipt = ReceiptGenerator::generateReceipt(newTransaction);
+            
+            crow::json::wvalue response;
+            response["status"] = "Transaction successful";
+            response["receipt"] = receipt;
+            
+            return crow::response(200, response);
         } else {
             return crow::response(400, "{\"error\": \"Transaction failed. Check for sufficient funds or matching currencies.\"}");
         }

@@ -10,14 +10,28 @@ add_library(sqlite3_lib vendor/sqlite3/sqlite3.c)
 add_library(core_lib
     core/Wallet.cpp
     core/TransactionEngine.cpp
+    core/CurrencyRegistry.cpp
+    core/ExchangeRates.cpp
+    core/LedgerManager.cpp
+    core/RetryQueue.cpp
+    core/RollbackManager.cpp
+    core/TransactionProcessor.cpp
+    core/EconomyZoneManager.cpp
 )
 
 add_library(transactions_lib
     transactions/Transaction.cpp
+    transactions/TransactionLimits.cpp
+    transactions/ReceiptGenerator.cpp
 )
 
 add_library(database_lib
     database/DatabaseManager.cpp
+    database/BackupManager.cpp
+    database/DatabaseConnector.cpp
+    database/SQLiteDriver.cpp
+    database/MigrationTools.cpp
+    database/ORM.cpp
 )
 
 add_library(scheduler_lib
@@ -38,6 +52,19 @@ add_library(api_lib
 
 add_library(analytics_lib
     analytics/TransactionStats.cpp
+    analytics/FraudSignalDetector.cpp
+    analytics/UsageTracker.cpp
+    analytics/LiquidityMonitor.cpp
+    analytics/AccountInsights.cpp
+    analytics/SegmentedStats.cpp
+    analytics/UsageAnalytics.cpp
+    analytics/BusinessInsights.cpp
+    analytics/DashboardData.cpp
+    analytics/ExposureReport.cpp
+    analytics/HeatmapGenerator.cpp
+    analytics/TrendGraphs.cpp
+    analytics/InsightsDashboard.cpp
+    analytics/VisualReports.cpp
 )
 
 add_executable(VirtualMoneySystem main.cpp)

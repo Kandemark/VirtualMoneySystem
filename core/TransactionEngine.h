@@ -3,6 +3,7 @@
 
 #include "Wallet.h"
 #include "../transactions/Transaction.h"
+#include <vector>
 
 /**
  * @class TransactionEngine
@@ -21,6 +22,15 @@ public:
      * @return True if the transaction was successful, false otherwise.
      */
     bool processTransaction(Wallet& senderWallet, Wallet& receiverWallet, double amount);
+
+    /**
+     * @brief Returns the history of all processed transactions.
+     * @return A vector of Transaction objects.
+     */
+    const std::vector<Transaction>& getTransactionHistory() const;
+
+private:
+    std::vector<Transaction> history;
 };
 
 #endif // TRANSACTION_ENGINE_H
