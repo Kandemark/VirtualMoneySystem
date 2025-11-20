@@ -1,4 +1,6 @@
 #include "WalletEndpoints.h"
+#include <iomanip>
+#include <sstream>
 
 WalletEndpoints::WalletEndpoints(DatabaseManager& db, TransactionEngine& te, std::mutex& mtx, TransactionStats& stats)
     : dbManager(db), transactionEngine(te), dbMutex(mtx), transactionStats(stats) {}
@@ -174,13 +176,43 @@ void WalletEndpoints::registerRoutes(crow::SimpleApp& app) {
             dbManager.updateWalletBalance(senderId, senderWallet.getBalance());
             dbManager.updateWalletBalance(receiverId, receiverWallet.getBalance());
             
+            // Persist transaction
+            Transaction newTransaction(senderId, receiverId, amount, senderWallet.getCurrency());
+            dbManager.createTransaction(newTransaction);
+
             // AML Check
-            Transaction tx(senderId, receiverId, amount, senderWallet.getCurrency());
-            amlScanner.isSuspicious(tx);
+            amlScanner.isSuspicious(newTransaction);
             
             return crow::response(200, "{\"status\": \"Transaction successful\"}");
         } else {
             return crow::response(400, "{\"error\": \"Transaction failed. Check for sufficient funds or matching currencies.\"}");
         }
+    });
+
+    // Transaction History
+    CROW_ROUTE(app, "/wallet/<string>/history")
+    ([this](const std::string& userId){
+        std::lock_guard<std::mutex> lock(dbMutex);
+
+        auto history = dbManager.getTransactionHistory(userId);
+
+        crow::json::wvalue::list response_list;
+        for (const auto& tx : history) {
+            crow::json::wvalue tx_json;
+            tx_json["senderId"] = tx.getSenderId();
+            tx_json["receiverId"] = tx.getReceiverId();
+            tx_json["amount"] = tx.getAmount();
+            tx_json["currency"] = tx.getCurrency();
+
+            auto time_point = tx.getTimestamp();
+            std::time_t time = std::chrono::system_clock::to_time_t(time_point);
+            std::stringstream ss;
+            ss << std::put_time(std::gmtime(&time), "%Y-%m-%d %H:%M:%S");
+            tx_json["timestamp"] = ss.str();
+
+            response_list.push_back(tx_json);
+        }
+
+        return crow::response(crow::json::wvalue(response_list));
     });
 }
