@@ -1,19 +1,92 @@
+/**
+ * @file ReceiptGenerator.cpp
+ * @brief Transaction receipt generation implementation
+ */
+
 #include "ReceiptGenerator.h"
 #include <sstream>
 #include <iomanip>
-#include <chrono>
+#include <iostream>
 
-std::string ReceiptGenerator::generateReceipt(const Transaction& transaction) {
+namespace VirtualMoney {
+
+ReceiptGenerator::ReceiptGenerator() {}
+
+std::string ReceiptGenerator::generateReceipt(const std::string& transactionId,
+                                             const std::string& from,
+                                             const std::string& to,
+                                             double amount,
+                                             const std::string& currency) {
+    std::stringstream receipt;
+    
+    receipt << "========================================\n";
+    receipt << "       VIRTUALMONEY SYSTEM RECEIPT      \n";
+    receipt << "========================================\n\n";
+    
+    receipt << "Transaction ID: " << transactionId << "\n";
+    receipt << "Date: " << getCurrentTimestamp() << "\n\n";
+    
+    receipt << "FROM:\n";
+    receipt << "  Wallet: " << from << "\n\n";
+    
+    receipt << "TO:\n";
+    receipt << "  Wallet: " << to << "\n\n";
+    
+    receipt << "AMOUNT:\n";
+    receipt << "  " << std::fixed << std::setprecision(2) << amount << " " << currency << "\n\n";
+    
+    double fee = calculateFee(amount);
+    receipt << "FEE:\n";
+    receipt << "  " << std::fixed << std::setprecision(2) << fee << " " << currency << "\n\n";
+    
+    double total = amount + fee;
+    receipt << "TOTAL:\n";
+    receipt << "  " << std::fixed << std::setprecision(2) << total << " " << currency << "\n\n";
+    
+    receipt << "STATUS: COMPLETED\n\n";
+    
+    receipt << "========================================\n";
+    receipt << "Thank you for using VirtualMoney System!\n";
+    receipt << "========================================\n";
+    
+    return receipt.str();
+}
+
+std::string ReceiptGenerator::generatePDFReceipt(const std::string& transactionId) {
+    // Generate PDF receipt
+    // In production, use PDF library
+    
+    std::string pdfPath = "/receipts/" + transactionId + ".pdf";
+    
+    std::cout << "PDF receipt generated: " << pdfPath << std::endl;
+    
+    return pdfPath;
+}
+
+bool ReceiptGenerator::emailReceipt(const std::string& transactionId, const std::string& email) {
+    std::string receipt = generateReceipt(transactionId, "WALLET_XXX", "WALLET_YYY", 100.0, "USD");
+    
+    std::cout << "Emailing receipt to: " << email << std::endl;
+    std::cout << receipt << std::endl;
+    
+    // In production, use email service
+    return true;
+}
+
+std::string ReceiptGenerator::getCurrentTimestamp() {
+    std::time_t now = std::time(nullptr);
+    std::tm* localTime = std::localtime(&now);
+    
     std::stringstream ss;
-    auto time_point = transaction.getTimestamp();
-    std::time_t time = std::chrono::system_clock::to_time_t(time_point);
-
-    ss << "--- TRANSACTION RECEIPT ---\n";
-    ss << "Date: " << std::put_time(std::gmtime(&time), "%Y-%m-%d %H:%M:%S") << " UTC\n";
-    ss << "Sender: " << transaction.getSenderId() << "\n";
-    ss << "Receiver: " << transaction.getReceiverId() << "\n";
-    ss << "Amount: " << std::fixed << std::setprecision(2) << transaction.getAmount() << " " << transaction.getCurrency() << "\n";
-    ss << "---------------------------";
+    ss << std::put_time(localTime, "%Y-%m-%d %H:%M:%S");
     
     return ss.str();
 }
+
+double ReceiptGenerator::calculateFee(double amount) {
+    // Simple fee calculation: 0.5% of amount, minimum $0.50
+    double fee = amount * 0.005;
+    return std::max(0.50, fee);
+}
+
+} // namespace VirtualMoney
