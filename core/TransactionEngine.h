@@ -20,6 +20,11 @@ public:
      * @param receiverWallet The receiver's wallet.
      * @param amount The amount to transfer.
      * @return True if the transaction was successful, false otherwise.
+     *
+     * Returns false when:
+     * - amount is less than or equal to zero
+     * - sender and receiver currencies do not match
+     * - sender has insufficient funds
      */
     bool processTransaction(Wallet& senderWallet, Wallet& receiverWallet, double amount);
 

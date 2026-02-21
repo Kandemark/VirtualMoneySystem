@@ -7,6 +7,7 @@
 #define LANGUAGE_MANAGER_H
 
 #include <string>
+#include <vector>
 #include <map>
 
 class LanguageManager {

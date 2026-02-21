@@ -7,6 +7,7 @@
 #define SMS_ADAPTER_H
 
 #include <string>
+#include <vector>
 
 class SMSAdapter {
 public:

@@ -7,6 +7,7 @@
 #define EXPORT_ENGINE_H
 
 #include <string>
+#include <vector>
 #include <map>
 
 /**
