@@ -1,31 +1,34 @@
 #ifndef WALLET_ENDPOINTS_H
 #define WALLET_ENDPOINTS_H
 
-#include "../vendor/crow/crow.h"
-#include "../database/DatabaseManager.h"
-#include "../core/TransactionEngine.h"
-#include "../compliance/KYCValidator.h"
-#include "../compliance/AMLScanner.h"
-#include "../analytics/TransactionStats.h"
 #include "../analytics/FraudSignalDetector.h"
+#include "../analytics/TransactionStats.h"
+#include "../core/TransactionEngine.h"
+#include "../database/DatabaseManager.h"
 #include "../transactions/TransactionLimits.h"
-#include "../transactions/ReceiptGenerator.h"
 #include <mutex>
+
 
 class WalletEndpoints {
 public:
-    WalletEndpoints(DatabaseManager& db, TransactionEngine& te, std::mutex& dbMutex, TransactionStats& stats, FraudSignalDetector& fraudDetector, TransactionLimits& limits);
-    void registerRoutes(crow::SimpleApp& app);
+  WalletEndpoints(DatabaseManager &db, TransactionEngine &engine,
+                  std::mutex &mutex, TransactionStats &stats,
+                  FraudSignalDetector &fraud, TransactionLimits &limits);
+
+  void registerRoutes();
+  DatabaseManager &getDatabase() { return dbManager; } // Expose for UserManager
+  std::mutex &getMutex() { return dbMutex; }
+  TransactionEngine &getTransactionEngine() { return transactionEngine; }
+  FraudSignalDetector &getFraudDetector() { return fraudDetector; }
+  TransactionLimits &getTransactionLimits() { return transactionLimits; }
 
 private:
-    DatabaseManager& dbManager;
-    TransactionEngine& transactionEngine;
-    std::mutex& dbMutex;
-    KYCValidator kycValidator;
-    AMLScanner amlScanner;
-    TransactionStats& transactionStats;
-    FraudSignalDetector& fraudDetector;
-    TransactionLimits& transactionLimits;
+  DatabaseManager &dbManager;
+  TransactionEngine &transactionEngine;
+  std::mutex &dbMutex;
+  TransactionStats &transactionStats;
+  FraudSignalDetector &fraudDetector;
+  TransactionLimits &transactionLimits;
 };
 
 #endif // WALLET_ENDPOINTS_H

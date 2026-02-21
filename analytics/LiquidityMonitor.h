@@ -4,6 +4,7 @@
 #include "../database/DatabaseManager.h"
 #include <string>
 #include <map>
+#include <mutex>
 
 class LiquidityMonitor {
 public:

@@ -3,6 +3,8 @@
 
 #include "../core/TransactionEngine.h"
 #include <string>
+#include <set>
+#include <ctime>
 
 class BusinessInsights {
 public:

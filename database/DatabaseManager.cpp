@@ -1,168 +1,126 @@
 #include "DatabaseManager.h"
+#include <ctime>
 #include <iostream>
-#include <stdexcept>
-#include <iomanip>
 #include <sstream>
 
-// Constructor: Opens the database connection.
-DatabaseManager::DatabaseManager(const std::string& dbPath) : db(nullptr) {
-    if (sqlite3_open(dbPath.c_str(), &db)) {
-        std::string errMsg = "Can't open database: ";
-        errMsg += sqlite3_errmsg(db);
-        throw std::runtime_error(errMsg);
-    }
-}
 
-// Destructor: Closes the database connection.
-DatabaseManager::~DatabaseManager() {
-    if (db) {
-        sqlite3_close(db);
-    }
-}
+DatabaseManager::DatabaseManager(const std::string &path) : dbPath(path) {}
 
-// Initializes the database by creating the required tables.
+DatabaseManager::~DatabaseManager() {}
+
 void DatabaseManager::initialize() {
-    char* errMsg = nullptr;
-    // SQL statements to create the 'wallets' and 'transactions' tables if they don't exist.
-    const char* sql =
-        "CREATE TABLE IF NOT EXISTS wallets ("
-        "user_id TEXT PRIMARY KEY NOT NULL,"
-        "currency TEXT NOT NULL,"
-        "balance REAL NOT NULL);"
-
-        "CREATE TABLE IF NOT EXISTS transactions ("
-        "transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "sender_id TEXT NOT NULL,"
-        "receiver_id TEXT NOT NULL,"
-        "amount REAL NOT NULL,"
-        "currency TEXT NOT NULL,"
-        "timestamp TEXT NOT NULL);";
-
-    if (sqlite3_exec(db, sql, 0, 0, &errMsg)) {
-        std::string error = "SQL error: ";
-        error += errMsg;
-        sqlite3_free(errMsg);
-        throw std::runtime_error(error);
-    }
+  std::lock_guard<std::mutex> lock(dbMutex);
+  // In-memory initialization - no external DB
+  std::cout << "[DB] Initialized in-memory database: " << dbPath << std::endl;
 }
 
-// Creates a new wallet in the database.
-bool DatabaseManager::createWallet(const Wallet& wallet) {
-    sqlite3_stmt* stmt;
-    const char* sql = "INSERT INTO wallets (user_id, currency, balance) VALUES (?, ?, ?);";
-
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        return false;
-    }
-
-    sqlite3_bind_text(stmt, 1, wallet.getUserId().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, wallet.getCurrency().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_double(stmt, 3, wallet.getBalance());
-
-    bool success = sqlite3_step(stmt) == SQLITE_DONE;
-
-    sqlite3_finalize(stmt);
-    return success;
+bool DatabaseManager::execute(const std::string &query) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  // Stub implementation
+  return true;
 }
 
-// Retrieves a wallet from the database by user ID.
-std::optional<Wallet> DatabaseManager::getWallet(const std::string& userId) {
-    sqlite3_stmt* stmt;
-    const char* sql = "SELECT currency, balance FROM wallets WHERE user_id = ?;";
-
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        return std::nullopt;
-    }
-
-    sqlite3_bind_text(stmt, 1, userId.c_str(), -1, SQLITE_STATIC);
-
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-        std::string currency = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-        double balance = sqlite3_column_double(stmt, 1);
-
-        Wallet wallet(userId, currency, balance);
-        sqlite3_finalize(stmt);
-        return wallet;
-    }
-
-    sqlite3_finalize(stmt);
-    return std::nullopt;
+bool DatabaseManager::walletExists(const std::string &walletId) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  return wallets.find(walletId) != wallets.end();
 }
 
-// Updates the balance of a wallet in the database.
-bool DatabaseManager::updateWalletBalance(const std::string& userId, double newBalance) {
-    sqlite3_stmt* stmt;
-    const char* sql = "UPDATE wallets SET balance = ? WHERE user_id = ?;";
-
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        return false;
-    }
-
-    sqlite3_bind_double(stmt, 1, newBalance);
-    sqlite3_bind_text(stmt, 2, userId.c_str(), -1, SQLITE_STATIC);
-
-    bool success = sqlite3_step(stmt) == SQLITE_DONE;
-
-    if (success) {
-        success = sqlite3_changes(db) > 0;
-    }
-
-    sqlite3_finalize(stmt);
-    return success;
+std::vector<std::map<std::string, std::string>>
+DatabaseManager::query(const std::string &sql) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  return std::vector<std::map<std::string, std::string>>();
 }
 
-// Creates a new transaction record in the database.
-bool DatabaseManager::createTransaction(const Transaction& transaction) {
-    sqlite3_stmt* stmt;
-    const char* sql = "INSERT INTO transactions (sender_id, receiver_id, amount, currency, timestamp) VALUES (?, ?, ?, ?, ?);";
-
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        return false;
-    }
-
-    // Convert the timestamp to a string for storage.
-    auto time_point = transaction.getTimestamp();
-    std::time_t time = std::chrono::system_clock::to_time_t(time_point);
-    std::stringstream ss;
-    ss << std::put_time(std::gmtime(&time), "%Y-%m-%d %H:%M:%S");
-    std::string timestamp_str = ss.str();
-
-    sqlite3_bind_text(stmt, 1, transaction.getSenderId().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, transaction.getReceiverId().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_double(stmt, 3, transaction.getAmount());
-    sqlite3_bind_text(stmt, 4, transaction.getCurrency().c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 5, timestamp_str.c_str(), -1, SQLITE_STATIC);
-
-    bool success = sqlite3_step(stmt) == SQLITE_DONE;
-
-    sqlite3_finalize(stmt);
-    return success;
+bool DatabaseManager::createWallet(const std::string &userId,
+                                   const std::string &currency) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  // NOTE: Despite parameter name `userId`, this method is used throughout the
+  // codebase with a generated wallet identifier. We treat the first argument as
+  // the walletId.
+  const std::string &walletId = userId;
+  wallets[walletId] = 0.0;
+  walletCurrencies[walletId] = currency;
+  std::cout << "[DB] Created wallet: " << walletId << " (" << currency << ")" << std::endl;
+  return true;
 }
 
-// Retrieves the transaction history for a given user.
-std::vector<Transaction> DatabaseManager::getTransactionHistory(const std::string& userId) {
-    sqlite3_stmt* stmt;
-    const char* sql = "SELECT sender_id, receiver_id, amount, currency, timestamp FROM transactions WHERE sender_id = ? OR receiver_id = ? ORDER BY timestamp DESC;";
+double DatabaseManager::getBalance(const std::string &walletId) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  auto it = wallets.find(walletId);
+  return (it != wallets.end()) ? it->second : 0.0;
+}
 
-    std::vector<Transaction> history;
+bool DatabaseManager::updateBalance(const std::string &walletId,
+                                    double newBalance) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  wallets[walletId] = newBalance;
+  return true;
+}
 
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        return history; // Return empty vector on error
+std::string DatabaseManager::getWalletCurrency(const std::string &walletId) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  auto it = walletCurrencies.find(walletId);
+  return (it != walletCurrencies.end()) ? it->second : "";
+}
+
+std::map<std::string, double> DatabaseManager::getAllWalletBalances() {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  return wallets;
+}
+
+std::map<std::string, std::string> DatabaseManager::getAllWalletCurrencies() {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  return walletCurrencies;
+}
+
+bool DatabaseManager::saveTransaction(const std::string &txId,
+                                      const std::string &from,
+                                      const std::string &to, double amount) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  std::map<std::string, std::string> tx;
+  tx["id"] = txId;
+  tx["from"] = from;
+  tx["to"] = to;
+  tx["amount"] = std::to_string(amount);
+
+  tx["fee"] = std::to_string(0.0);
+
+  time_t now = time(0);
+  tx["timestamp"] = std::to_string(now);
+
+  transactions.push_back(tx);
+  return true;
+}
+
+bool DatabaseManager::saveTransaction(const std::string &txId,
+                                      const std::string &from,
+                                      const std::string &to, double amount,
+                                      double fee) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  std::map<std::string, std::string> tx;
+  tx["id"] = txId;
+  tx["from"] = from;
+  tx["to"] = to;
+  tx["amount"] = std::to_string(amount);
+  tx["fee"] = std::to_string(fee);
+
+  time_t now = time(0);
+  tx["timestamp"] = std::to_string(now);
+
+  transactions.push_back(tx);
+  return true;
+}
+
+std::vector<std::map<std::string, std::string>>
+DatabaseManager::getTransactionHistory(const std::string &walletId) {
+  std::lock_guard<std::mutex> lock(dbMutex);
+  std::vector<std::map<std::string, std::string>> result;
+
+  for (const auto &tx : transactions) {
+    if (tx.at("from") == walletId || tx.at("to") == walletId) {
+      result.push_back(tx);
     }
+  }
 
-    sqlite3_bind_text(stmt, 1, userId.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, userId.c_str(), -1, SQLITE_STATIC);
-
-    // Loop through all the retrieved rows.
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        std::string senderId = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-        std::string receiverId = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        double amount = sqlite3_column_double(stmt, 2);
-        std::string currency = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
-
-        history.emplace_back(senderId, receiverId, amount, currency);
-    }
-
-    sqlite3_finalize(stmt);
-    return history;
+  return result;
 }

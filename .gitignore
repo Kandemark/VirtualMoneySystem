@@ -22,3 +22,14 @@ Makefile
 
 # VS Code
 .vscode/
+build_test/
+build/
+*.obj
+*.exe
+*.dll
+*.pdb
+*.ilk
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CMakePresets.json.user

@@ -1,74 +1,39 @@
-#include "core/Wallet.h"
-#include "core/TransactionEngine.h"
-#include "database/DatabaseManager.h"
-#include "scheduler/JobScheduler.h"
-#include "scheduler/RecurringPayments.h"
+#include "analytics/FraudSignalDetector.h"
+#include "analytics/TransactionStats.h"
 #include "api/RESTServer.h"
 #include "api/WalletEndpoints.h"
-#include "analytics/TransactionStats.h"
-#include "analytics/FraudSignalDetector.h"
+#include "core/TransactionEngine.h"
+#include "database/DatabaseManager.h"
 #include "transactions/TransactionLimits.h"
 #include <iostream>
-#include <memory>
 #include <mutex>
-#include <cstdlib>
-#include <ctime>
 
-// Global instances
-DatabaseManager dbManager("vms.db");
-std::mutex dbMutex;
-TransactionEngine transactionEngine;
 
-int main()
-{
-    std::cout << "VirtualMoneySystem v1.0.0 - Starting...\n\n";
-    
-    // Initialize database
-    try {
-        dbManager.initialize();
-        std::cout << "[OK] Database initialized\n";
-    } catch (const std::runtime_error& e) {
-        std::cerr << "[ERROR] Database initialization failed: " << e.what() << "\n";
-        return 1;
-    }
+int main() {
+  std::cout << "\n========================================\n";
+  std::cout << "  VirtualMoneySystem v1.0.2\n";
+  std::cout << "  HTTP Server + Authentication\n";
+  std::cout << "========================================\n\n";
 
-    // Initialize scheduler
-    JobScheduler scheduler;
-    RecurringPayments recurringPayments(transactionEngine, dbManager);
-    scheduler.schedule([&recurringPayments]() {
-        recurringPayments.processPayments();
-    }, 60);
-    scheduler.start();
-    std::cout << "[OK] Scheduler started\n";
+  try {
+    std::cout << "Initializing...\n";
+    DatabaseManager db("vms.db");
+    std::mutex mtx;
+    TransactionEngine txEngine; // Default constructor
+    TransactionStats stats(txEngine);
+    FraudSignalDetector fraud(txEngine);
+    TransactionLimits limits(1000000.0);
 
-    // Initialize analytics
-    TransactionStats transactionStats(transactionEngine);
-    FraudSignalDetector fraudDetector(transactionEngine);
-    std::cout << "[OK] Analytics initialized\n";
+    WalletEndpoints endpoints(db, txEngine, mtx, stats, fraud, limits);
+    RESTServer server(endpoints);
 
-    // Initialize transaction limits
-    TransactionLimits transactionLimits(50000.0);
-    std::cout << "[OK] Transaction limits configured\n";
+    std::cout << "\nStarting on http://localhost:12345\n\n";
+    server.run(12345);
 
-    // Initialize API
-    WalletEndpoints walletEndpoints(dbManager, transactionEngine, dbMutex, 
-                                   transactionStats, fraudDetector, transactionLimits);
-    RESTServer server(walletEndpoints);
-    std::cout << "[OK] API server ready\n\n";
+  } catch (const std::exception &e) {
+    std::cerr << "ERROR: " << e.what() << "\n";
+    return 1;
+  }
 
-    // Use random port to avoid conflicts
-    srand(time(0));
-    int port = 10000 + (rand() % 10000);
-    
-    std::cout << "========================================\n";
-    std::cout << "VirtualMoneySystem is RUNNING\n";
-    std::cout << "========================================\n";
-    std::cout << "API Server: http://localhost:" << port << "\n";
-    std::cout << "Press Ctrl+C to stop\n";
-    std::cout << "========================================\n\n";
-    
-    server.run(port);
-    
-    scheduler.stop();
-    return 0;
+  return 0;
 }

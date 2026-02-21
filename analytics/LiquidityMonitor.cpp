@@ -4,20 +4,45 @@ LiquidityMonitor::LiquidityMonitor(DatabaseManager& dbManager)
     : dbManager(dbManager) {}
 
 double LiquidityMonitor::getTotalLiquidity(const std::string& currency) const {
-    // This would query all wallets with the given currency and sum balances
-    // Placeholder implementation
-    return 0.0;
+    double total = 0.0;
+
+    const auto balances = dbManager.getAllWalletBalances();
+    const auto currencies = dbManager.getAllWalletCurrencies();
+    for (const auto& pair : balances) {
+        const auto it = currencies.find(pair.first);
+        if (it != currencies.end() && it->second == currency) {
+            total += pair.second;
+        }
+    }
+    
+    return total;
 }
 
 std::map<std::string, double> LiquidityMonitor::getLiquidityByCurrency() const {
     std::map<std::string, double> liquidity;
-    // This would aggregate wallet balances by currency
-    // Placeholder implementation
+
+    const auto balances = dbManager.getAllWalletBalances();
+    const auto currencies = dbManager.getAllWalletCurrencies();
+    for (const auto& pair : balances) {
+        const auto it = currencies.find(pair.first);
+        if (it != currencies.end()) {
+            liquidity[it->second] += pair.second;
+        }
+    }
+    
     return liquidity;
 }
 
 double LiquidityMonitor::getAverageLiquidity() const {
-    // Calculate average liquidity across all wallets
-    // Placeholder implementation
-    return 0.0;
+    const auto balances = dbManager.getAllWalletBalances();
+    if (balances.empty()) {
+        return 0.0;
+    }
+    
+    double total = 0.0;
+    for (const auto& pair : balances) {
+        total += pair.second;
+    }
+    
+    return total / balances.size();
 }

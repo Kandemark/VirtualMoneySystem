@@ -8,6 +8,7 @@
 
 #include <string>
 #include <map>
+#include <mutex>
 
 /**
  * @brief Manages exchange rates
@@ -43,6 +44,8 @@ public:
 
 private:
     std::map<std::string, double> rates;
+    std::map<std::string, std::string> timestamps;
+    std::mutex ratesMutex;
 };
 
 #endif
