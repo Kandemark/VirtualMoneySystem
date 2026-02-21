@@ -7,13 +7,18 @@
 #include <stdexcept>
 #include <vector>
 
+#ifdef _WIN32
 #include <windows.h>
 #include <winhttp.h>
-
 #pragma comment(lib, "winhttp.lib")
+#else
+#include <array>
+#include <cstdio>
+#endif
 
 namespace {
 
+#ifdef _WIN32
 std::wstring toWide(const std::string &s) {
   return std::wstring(s.begin(), s.end());
 }
@@ -79,6 +84,29 @@ std::string httpGet(const std::wstring &host, INTERNET_PORT port,
   WinHttpCloseHandle(hSession);
   return result;
 }
+#else
+std::string httpGet(const std::string &host, int port,
+                    const std::string &path, bool useHttps) {
+  const char* scheme = useHttps ? "https" : "http";
+  std::string url = std::string(scheme) + "://" + host + ":" + std::to_string(port) + path;
+  std::string command = "curl -fsSL --max-time 10 '" + url + "'";
+
+  std::array<char, 4096> buffer{};
+  std::string result;
+  FILE* pipe = popen(command.c_str(), "r");
+  if (!pipe) {
+    throw std::runtime_error("Failed to execute curl for FX fetch");
+  }
+  while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr) {
+    result += buffer.data();
+  }
+  const int exitCode = pclose(pipe);
+  if (exitCode != 0 || result.empty()) {
+    throw std::runtime_error("curl FX fetch failed");
+  }
+  return result;
+}
+#endif
 
 // Very small JSON helpers (not a general JSON parser)
 // Extracts a number after:  "KEY": <number>
@@ -151,8 +179,13 @@ FXRateFetcher::fetchRates(const std::string &provider) {
 
   if (prov == "default" || prov == "ERAPI") {
     // https://open.er-api.com/v6/latest/USD
+#ifdef _WIN32
     const std::string json = httpGet(L"open.er-api.com", 443,
                                      L"/v6/latest/USD", true);
+#else
+    const std::string json = httpGet("open.er-api.com", 443,
+                                     "/v6/latest/USD", true);
+#endif
 
     // Extract a few currencies we care about. We can extend later.
     double eur = 0.0, kes = 0.0;
@@ -187,9 +220,15 @@ FXRateFetcher::fetchRates(const std::string &provider) {
 
   if (prov == "default" || prov == "COINGECKO") {
     // https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,eur
+#ifdef _WIN32
     const std::string json = httpGet(
         L"api.coingecko.com", 443,
         L"/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,eur", true);
+#else
+    const std::string json = httpGet(
+        "api.coingecko.com", 443,
+        "/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,eur", true);
+#endif
 
     // Response shape: {"bitcoin":{"usd":40000,"eur":36800}}
     // We'll just extract "usd" and "eur" numbers (lowercase in response).

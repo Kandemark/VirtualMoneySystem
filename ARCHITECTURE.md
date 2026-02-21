@@ -8,7 +8,7 @@
 │                                                 │
 │  ┌──────────────────────────────────────────┐  │
 │  │         REST API Server                  │  │
-│  │      (Port 8080-20000)                   │  │
+│  │      (Port 10000-20000)                  │  │
 │  │                                          │  │
 │  │  Endpoints:                              │  │
 │  │  - POST /api/v1/users/signup             │  │
@@ -43,7 +43,7 @@
 ## Components
 
 ### Backend (VirtualMoneySystem.exe)
-- **Files**: 651 (323 .cpp + 328 .h)
+- **Files**: 670 (333 .cpp + 337 .h)
 - **Port**: Random (10000-20000 range)
 - **Database**: vms.db (SQLite)
 - **API**: REST (JSON)

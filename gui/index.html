@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VirtualMoneySystem Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background:#f6f8fb; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(320px,1fr)); gap:14px; }
+    .card { background:white; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); padding:14px; }
+    h1 { margin-top:0; }
+    input,select,button,textarea { width:100%; padding:8px; margin:6px 0; box-sizing:border-box; }
+    button { cursor:pointer; background:#1f6feb; color:white; border:none; border-radius:6px; }
+    pre { background:#0b1020; color:#c3e8ff; padding:10px; border-radius:8px; max-height:280px; overflow:auto; }
+  </style>
+</head>
+<body>
+  <h1>VirtualMoneySystem GUI (Live API)</h1>
+  <div class="card">
+    <label>Base URL</label>
+    <input id="baseUrl" value="http://localhost:8080" />
+    <button onclick="health()">Check Health</button>
+  </div>
+
+  <div class="card">
+    <label>UI Role / Screen Profile</label>
+    <select id="uiRole" onchange="applyRoleUI()">
+      <option value="individual">Individual</option>
+      <option value="organization">Organization</option>
+      <option value="corporation">Corporation</option>
+      <option value="sacco">SACCO</option>
+      <option value="government">Government</option>
+      <option value="third_party_provider">Third Party Provider</option>
+    </select>
+  </div>
+
+  <div class="grid">
+    <div class="card" data-roles="individual,organization,corporation,sacco,government,third_party_provider">
+      <h3>User Signup</h3>
+      <input id="su_user" placeholder="username" />
+      <input id="su_pass" placeholder="password" type="password" />
+      <input id="su_email" placeholder="email (optional)" />
+      <button onclick="signup()">Signup</button>
+    </div>
+
+    <div class="card" data-roles="individual,organization,corporation,sacco,government,third_party_provider">
+      <h3>User Login</h3>
+      <input id="li_user" placeholder="username" />
+      <input id="li_pass" placeholder="password" type="password" />
+      <button onclick="login()">Login</button>
+      <textarea id="token" placeholder="token appears here"></textarea>
+    </div>
+
+    <div class="card" data-roles="individual,organization,corporation,sacco,government">
+      <h3>Create Wallet</h3>
+      <select id="wallet_currency"><option>USD</option><option>EUR</option><option>KES</option><option>BTC</option></select>
+      <button onclick="createWallet()">Create Wallet</button>
+      <input id="wallet_id" placeholder="wallet id" />
+    </div>
+
+    <div class="card" data-roles="individual,organization,corporation,sacco,government">
+      <h3>Deposit / Withdraw</h3>
+      <input id="dw_wallet" placeholder="wallet id" />
+      <input id="dw_amount" type="number" step="0.01" placeholder="amount" />
+      <button onclick="deposit()">Deposit</button>
+      <button onclick="withdraw()">Withdraw</button>
+      <button onclick="balance()">Get Balance</button>
+    </div>
+
+    <div class="card" data-roles="individual,organization,corporation,sacco,government">
+      <h3>Transfer</h3>
+      <input id="tx_from" placeholder="fromWallet" />
+      <input id="tx_to" placeholder="toWallet" />
+      <input id="tx_amount" type="number" step="0.01" placeholder="amount" />
+      <button onclick="transfer()">Send</button>
+    </div>
+
+    <div class="card" data-roles="individual,organization,corporation,sacco,government,third_party_provider">
+      <h3>FX Convert</h3>
+      <input id="fx_from" value="USD" placeholder="from" />
+      <input id="fx_to" value="EUR" placeholder="to" />
+      <input id="fx_amount" type="number" step="0.01" value="100" />
+      <button onclick="convert()">Convert</button>
+    </div>
+  
+    <div class="card" data-roles="organization,corporation,sacco,government,third_party_provider">
+      <h3>Policy Evaluate (Governance/Sanctions/Privacy)</h3>
+      <input id="pol_entity" placeholder="entityId" value="entity_001" />
+      <select id="pol_actor">
+        <option>individual</option><option>organization</option><option>corporation</option><option>sacco</option><option>government</option><option>third_party_provider</option>
+      </select>
+      <input id="pol_country" placeholder="countryCode" value="KE" />
+      <input id="pol_txid" placeholder="transactionId" value="tx_policy_001" />
+      <input id="pol_currency" placeholder="currency" value="USD" />
+      <input id="pol_amount" type="number" step="0.01" value="1200" />
+      <input id="pol_third" placeholder="thirdPartyId (optional)" value="trusted_gateway" />
+      <button onclick="policyEval()">Evaluate Policy</button>
+    </div>
+    <div class="card" data-roles="individual,organization,corporation,sacco,government,third_party_provider">
+      <h3>Market Quote (Full Asset Market)</h3>
+      <input id="mk_symbol" value="USDKES" placeholder="symbol e.g. USDKES, AAPL, BTCUSD" />
+      <label><input id="mk_liq" type="checkbox" /> Low liquidity mode</label>
+      <label><input id="mk_sanc" type="checkbox" /> Sanctions sensitive</label>
+      <button onclick="marketQuote()">Get Quote</button>
+    </div>
+
+    <div class="card" data-roles="organization,corporation,sacco,government,third_party_provider">
+      <h3>Profit Optimization</h3>
+      <input id="pr_volume" type="number" step="0.01" value="1000000" placeholder="monthly volume" />
+      <input id="pr_txc" type="number" step="1" value="5000" placeholder="tx count" />
+      <input id="pr_infra" type="number" step="0.0001" value="0.01" placeholder="infra cost per tx" />
+      <input id="pr_comp" type="number" step="0.0001" value="0.005" placeholder="compliance cost per tx" />
+      <label><input id="pr_risk" type="checkbox" /> High risk mode</label>
+      <label><input id="pr_pub" type="checkbox" /> Public sector mode</label>
+      <button onclick="profitOptimize()">Optimize</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Response Log</h3>
+    <pre id="log"></pre>
+  </div>
+
+<script>
+const logEl = document.getElementById('log');
+function base(){ return document.getElementById('baseUrl').value.replace(/\/$/, ''); }
+function out(label, data){ logEl.textContent = `[${new Date().toISOString()}] ${label}\n` + JSON.stringify(data, null, 2) + "\n\n" + logEl.textContent; }
+async function req(method, path, body){
+  const r = await fetch(base()+path, {method, headers:{'Content-Type':'application/json'}, body: body?JSON.stringify(body):undefined});
+  const t = await r.text();
+  try { return JSON.parse(t); } catch { return {raw:t, status:r.status}; }
+}
+async function health(){ out('health', await req('GET','/api/v1/health')); }
+async function signup(){ out('signup', await req('POST','/api/v1/users/signup',{username:su_user.value,password:su_pass.value,email:su_email.value})); }
+async function login(){ const res=await req('POST','/api/v1/auth/login',{username:li_user.value,password:li_pass.value}); if(res.token) token.value=res.token; out('login',res); }
+async function createWallet(){ const res=await req('POST','/api/v1/wallets',{currency:wallet_currency.value}); if(res.walletId) { wallet_id.value=res.walletId; dw_wallet.value=res.walletId; } out('createWallet',res); }
+async function deposit(){ out('deposit', await req('POST',`/api/v1/wallets/${dw_wallet.value}/deposit`,{amount:Number(dw_amount.value)})); }
+async function withdraw(){ out('withdraw', await req('POST',`/api/v1/wallets/${dw_wallet.value}/withdraw`,{amount:Number(dw_amount.value)})); }
+async function balance(){ out('balance', await req('GET',`/api/v1/wallets/${dw_wallet.value}/balance`)); }
+async function transfer(){ out('transfer', await req('POST','/api/v1/transactions',{fromWallet:tx_from.value,toWallet:tx_to.value,amount:Number(tx_amount.value)})); }
+async function convert(){ out('convert', await req('GET',`/api/v1/convert?from=${encodeURIComponent(fx_from.value)}&to=${encodeURIComponent(fx_to.value)}&amount=${Number(fx_amount.value)}`)); }
+async function policyEval(){
+  out('policyEval', await req('POST','/api/v1/policy/evaluate',{
+    actorType:pol_actor.value,
+    entityId:pol_entity.value,
+    countryCode:pol_country.value,
+    transactionId:pol_txid.value,
+    currency:pol_currency.value,
+    amount:Number(pol_amount.value),
+    thirdPartyId:pol_third.value,
+    kycCompleted:"true",
+    amlCleared:"true",
+    pepFlag:"false",
+    regulatorWhitelisted:"false",
+    crossBorder:"false"
+  }));
+}
+
+
+function applyRoleUI(){
+  const role = document.getElementById('uiRole').value;
+  document.querySelectorAll('[data-roles]').forEach(el=>{
+    const roles = (el.getAttribute('data-roles')||'').split(',').map(x=>x.trim());
+    el.style.display = roles.includes(role) ? '' : 'none';
+  });
+}
+
+async function marketQuote(){
+  const q = `/api/v1/market/quote?symbol=${encodeURIComponent(mk_symbol.value)}&lowLiquidity=${mk_liq.checked}&sanctionsSensitive=${mk_sanc.checked}`;
+  out('marketQuote', await req('GET', q));
+}
+
+async function profitOptimize(){
+  out('profitOptimize', await req('POST','/api/v1/profit/optimize',{
+    monthlyVolume:Number(pr_volume.value),
+    txCount:Number(pr_txc.value),
+    infraCostPerTx:Number(pr_infra.value),
+    complianceCostPerTx:Number(pr_comp.value),
+    highRisk: pr_risk.checked ? "true" : "false",
+    publicSectorMode: pr_pub.checked ? "true" : "false"
+  }));
+}
+
+applyRoleUI();
+
+</script>
+</body>
+</html>

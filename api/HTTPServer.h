@@ -9,7 +9,7 @@
 #include <vector>
 
 
-// Lightweight HTTP server using Windows sockets (Winsock)
+// Lightweight HTTP server using cross-platform sockets (Winsock/POSIX)
 class HTTPServer {
 public:
   using RouteHandler = std::function<std::string(const std::string &method,

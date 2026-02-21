@@ -7,13 +7,19 @@
 #include <numeric>
 #include <sstream>
 
+#ifdef _WIN32
+#define timegm_safe(_tm_ptr,_t_ptr) gmtime_s((_tm_ptr), (_t_ptr))
+#else
+#define timegm_safe(_tm_ptr,_t_ptr) gmtime_r((_t_ptr), (_tm_ptr))
+#endif
+
 namespace {
 std::mutex g_histMutex;
 
 std::string nowTimestampUtc() {
   std::time_t t = std::time(nullptr);
   std::tm tm{};
-  gmtime_s(&tm, &t);
+  timegm_safe(&tm, &t);
   char buf[32];
   std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tm);
   return std::string(buf);
