@@ -3,6 +3,9 @@
 #include "../security/InputValidator.h"
 #include "../currency/ExchangeRates.h"
 #include "../fees/FeeEngine.h"
+#include "../compliance/SystemGovernanceEngine.h"
+#include "../compliance/ProfitOptimizationEngine.h"
+#include "../compliance/AssetMarketEngine.h"
 #include "HTTPServer.h"
 #include "WalletEndpoints.h"
 #include <ctime>
@@ -172,6 +175,19 @@ double extractJsonNumberField(const std::string &body, const std::string &field,
   } catch (...) {
     return 0.0;
   }
+}
+
+
+bool parseJsonBoolField(const std::string &body, const std::string &field,
+                        bool defaultValue = false) {
+  const std::string v = extractJsonStringField(body, field);
+  if (v.empty()) {
+    return defaultValue;
+  }
+  std::string lower = v;
+  std::transform(lower.begin(), lower.end(), lower.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return lower == "true" || lower == "1" || lower == "yes";
 }
 } // namespace
 
@@ -563,6 +579,87 @@ void RESTServer::run(int port) {
                               }
                             });
 
+  httpServer->registerRoute(
+      "POST", "/api/v1/policy/evaluate",
+      [](const std::string &, const std::string &, const std::string &body) -> std::string {
+        SystemGovernanceEngine engine;
+
+        // Seed known third-party profile examples (would come from DB/config in production).
+        SystemGovernanceEngine::ThirdPartyProfile tp;
+        tp.providerId = "trusted_gateway";
+        tp.securityCertified = true;
+        tp.dataProcessingAgreement = true;
+        tp.sanctionsScreeningEnabled = true;
+        tp.historicalIncidents = 0;
+        engine.registerThirdParty(tp);
+
+        engine.markSanctionedCountry("KP");
+        engine.markSanctionedCountry("IR");
+
+        auto actorStr = InputValidator::sanitizeString(extractJsonStringField(body, "actorType"));
+        auto entityId = InputValidator::sanitizeString(extractJsonStringField(body, "entityId"));
+        auto country = InputValidator::sanitizeString(extractJsonStringField(body, "countryCode"));
+        auto currency = InputValidator::sanitizeString(extractJsonStringField(body, "currency"));
+        auto txId = InputValidator::sanitizeString(extractJsonStringField(body, "transactionId"));
+        auto thirdPartyId = InputValidator::sanitizeString(extractJsonStringField(body, "thirdPartyId"));
+
+        bool foundAmount = false;
+        double amount = extractJsonNumberField(body, "amount", foundAmount);
+
+        if (entityId.empty() || txId.empty() || currency.empty() || !foundAmount) {
+          return "{\"success\":false,\"error\":\"Missing required fields: entityId, transactionId, currency, amount\"}";
+        }
+
+        auto lower = actorStr;
+        std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
+
+        SystemGovernanceEngine::ActorType actorType = SystemGovernanceEngine::ActorType::Individual;
+        if (lower == "organization") actorType = SystemGovernanceEngine::ActorType::Organization;
+        else if (lower == "corporation") actorType = SystemGovernanceEngine::ActorType::Corporation;
+        else if (lower == "sacco") actorType = SystemGovernanceEngine::ActorType::Sacco;
+        else if (lower == "government") actorType = SystemGovernanceEngine::ActorType::Government;
+        else if (lower == "thirdparty" || lower == "third_party_provider") actorType = SystemGovernanceEngine::ActorType::ThirdPartyProvider;
+
+        SystemGovernanceEngine::EntityProfile actor;
+        actor.entityId = entityId;
+        actor.actorType = actorType;
+        actor.countryCode = country;
+        actor.kycCompleted = parseJsonBoolField(body, "kycCompleted", false);
+        actor.amlCleared = parseJsonBoolField(body, "amlCleared", false);
+        actor.pepFlag = parseJsonBoolField(body, "pepFlag", false);
+        actor.regulatorWhitelisted = parseJsonBoolField(body, "regulatorWhitelisted", false);
+
+        SystemGovernanceEngine::TransactionContext tx;
+        tx.transactionId = txId;
+        tx.currency = currency;
+        tx.amount = amount;
+        tx.crossBorder = parseJsonBoolField(body, "crossBorder", false);
+        if (!thirdPartyId.empty()) tx.thirdPartyId = thirdPartyId;
+
+        auto decision = engine.evaluate(actor, tx);
+
+        std::ostringstream resp;
+        resp << "{\"success\":true"
+             << ",\"allowed\":" << (decision.allowed ? "true" : "false")
+             << ",\"riskScore\":" << decision.riskScore
+             << ",\"privacyPolicy\":\"" << jsonEscape(decision.privacyPolicy) << "\""
+             << ",\"accountabilityTag\":\"" << jsonEscape(decision.accountabilityTag) << "\""
+             << ",\"reasons\":[";
+
+        for (size_t i = 0; i < decision.reasons.size(); ++i) {
+          if (i) resp << ',';
+          resp << "\"" << jsonEscape(decision.reasons[i]) << "\"";
+        }
+        resp << "],\"requiredControls\":[";
+        for (size_t i = 0; i < decision.requiredControls.size(); ++i) {
+          if (i) resp << ',';
+          resp << "\"" << jsonEscape(decision.requiredControls[i]) << "\"";
+        }
+        resp << "]}";
+
+        return resp.str();
+      });
+
   httpServer->registerRoute("GET", "/api/v1/convert",
                             [&exchangeRates](const std::string &, const std::string &path,
                                const std::string &) -> std::string {
@@ -623,6 +720,82 @@ void RESTServer::run(int port) {
                               }
                               return "{\"success\":false,\"error\":\"Missing parameters\"}";
                             });
+
+  httpServer->registerRoute(
+      "GET", "/api/v1/market/quote",
+      [](const std::string &, const std::string &path, const std::string &) -> std::string {
+        AssetMarketEngine market;
+        auto symPos = path.find("symbol=");
+        if (symPos == std::string::npos) {
+          return "{\"success\":false,\"error\":\"Missing symbol query parameter\"}";
+        }
+
+        std::string symbol = path.substr(symPos + 7);
+        auto amp = symbol.find('&');
+        if (amp != std::string::npos) symbol = symbol.substr(0, amp);
+
+        const bool lowLiquidity = path.find("lowLiquidity=true") != std::string::npos;
+        const bool sanctionsSensitive = path.find("sanctionsSensitive=true") != std::string::npos;
+
+        auto q = market.getQuote(symbol, lowLiquidity, sanctionsSensitive);
+        if (q.mid <= 0.0) {
+          return "{\"success\":false,\"error\":\"Unknown symbol\"}";
+        }
+
+        std::ostringstream resp;
+        resp << "{\"success\":true"
+             << ",\"symbol\":\"" << jsonEscape(q.symbol) << "\""
+             << ",\"bid\":" << q.bid
+             << ",\"ask\":" << q.ask
+             << ",\"mid\":" << q.mid
+             << ",\"spreadBps\":" << q.spreadBps
+             << ",\"tradable\":" << (q.tradable ? "true" : "false")
+             << ",\"note\":\"" << jsonEscape(q.note) << "\"}";
+        return resp.str();
+      });
+
+  httpServer->registerRoute(
+      "POST", "/api/v1/profit/optimize",
+      [](const std::string &, const std::string &, const std::string &body) -> std::string {
+        bool hasVol = false;
+        double monthlyVolume = extractJsonNumberField(body, "monthlyVolume", hasVol);
+        bool hasTx = false;
+        double txCountD = extractJsonNumberField(body, "txCount", hasTx);
+        bool hasInfra = false;
+        double infraCost = extractJsonNumberField(body, "infraCostPerTx", hasInfra);
+        bool hasComp = false;
+        double complianceCost = extractJsonNumberField(body, "complianceCostPerTx", hasComp);
+
+        if (!hasVol || !hasTx) {
+          return "{\"success\":false,\"error\":\"Missing required fields: monthlyVolume, txCount\"}";
+        }
+
+        ProfitOptimizationEngine::CostProfile cp;
+        if (hasInfra) cp.infraCostPerTx = infraCost;
+        if (hasComp) cp.complianceCostPerTx = complianceCost;
+
+        const bool highRisk = parseJsonBoolField(body, "highRisk", false);
+        const bool publicSectorMode = parseJsonBoolField(body, "publicSectorMode", false);
+
+        ProfitOptimizationEngine engine;
+        auto plan = engine.optimize(monthlyVolume, static_cast<int>(txCountD), cp, highRisk, publicSectorMode);
+
+        std::ostringstream resp;
+        resp << "{\"success\":true"
+             << ",\"recommendedFeeRate\":" << plan.recommendedFeeRate
+             << ",\"expectedGrossRevenue\":" << plan.expectedGrossRevenue
+             << ",\"expectedCost\":" << plan.expectedCost
+             << ",\"expectedNetProfit\":" << plan.expectedNetProfit
+             << ",\"netMargin\":" << plan.netMargin
+             << ",\"controls\":[";
+
+        for (size_t i = 0; i < plan.controls.size(); ++i) {
+          if (i) resp << ',';
+          resp << "\"" << jsonEscape(plan.controls[i]) << "\"";
+        }
+        resp << "]}";
+        return resp.str();
+      });
 
   httpServer->registerRoute("POST", "/api/v1/transactions",
                             [&db, &engine, &mtx, &fraud, &limits, &feeEngine](const std::string &, const std::string &,
@@ -719,6 +892,9 @@ void RESTServer::run(int port) {
   std::cout << "  GET  /api/v1/wallets/balance\n";
   std::cout << "  GET  /api/v1/wallets/transactions\n";
   std::cout << "  GET  /api/v1/convert\n";
+  std::cout << "  GET  /api/v1/market/quote\n";
+  std::cout << "  POST /api/v1/profit/optimize\n";
+  std::cout << "  POST /api/v1/policy/evaluate\n";
   std::cout << "  POST /api/v1/transactions\n\n";
 
   httpServer->start();

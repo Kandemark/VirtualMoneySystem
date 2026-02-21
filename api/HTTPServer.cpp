@@ -4,10 +4,24 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
-
 #pragma comment(lib, "ws2_32.lib")
+#else
+#include <arpa/inet.h>
+#include <cerrno>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+using SOCKET = int;
+constexpr int INVALID_SOCKET = -1;
+constexpr int SOCKET_ERROR = -1;
+inline int closesocket(SOCKET s) { return close(s); }
+#endif
 
 namespace {
 // Minimal chunked transfer decoding (RFC 7230).
@@ -62,16 +76,20 @@ std::string decodeChunkedBody(const std::string &chunked) {
 } // namespace
 
 HTTPServer::HTTPServer(int p) : port(p), running(false) {
+#ifdef _WIN32
   // Initialize Winsock
   WSADATA wsaData;
   if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
     std::cerr << "[HTTP] Failed to initialize Winsock" << std::endl;
   }
+#endif
 }
 
 HTTPServer::~HTTPServer() {
   stop();
+#ifdef _WIN32
   WSACleanup();
+#endif
 }
 
 void HTTPServer::registerRoute(const std::string &method,
@@ -135,12 +153,19 @@ void HTTPServer::serverLoop() {
   std::cout << "[HTTP] Listening on http://localhost:" << port << std::endl;
 
   // Set socket to non-blocking for clean shutdown
+#ifdef _WIN32
   u_long mode = 1;
   ioctlsocket(serverSocket, FIONBIO, &mode);
+#else
+  int flags = fcntl(serverSocket, F_GETFL, 0);
+  if (flags >= 0) {
+    fcntl(serverSocket, F_SETFL, flags | O_NONBLOCK);
+  }
+#endif
 
   while (running) {
     sockaddr_in clientAddr;
-    int clientAddrSize = sizeof(clientAddr);
+    socklen_t clientAddrSize = sizeof(clientAddr);
     SOCKET clientSocket =
         accept(serverSocket, (sockaddr *)&clientAddr, &clientAddrSize);
 
@@ -163,6 +188,7 @@ void HTTPServer::handleClient(void *clientSocketPtr) {
 
   // Ensure client socket is blocking; server socket is non-blocking for clean
   // shutdown, but accepted sockets may inherit non-blocking mode.
+#ifdef _WIN32
   u_long clientMode = 0;
   ioctlsocket(clientSocket, FIONBIO, &clientMode);
 
@@ -171,6 +197,19 @@ void HTTPServer::handleClient(void *clientSocketPtr) {
   DWORD timeoutMs = 2000;
   setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO,
              reinterpret_cast<const char *>(&timeoutMs), sizeof(timeoutMs));
+#else
+  int flags = fcntl(clientSocket, F_GETFL, 0);
+  if (flags >= 0) {
+    fcntl(clientSocket, F_SETFL, flags & ~O_NONBLOCK);
+  }
+
+  // Set a receive timeout so we can safely block for request bodies without
+  // hanging forever.
+  timeval timeout;
+  timeout.tv_sec = 2;
+  timeout.tv_usec = 0;
+  setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+#endif
 
   std::string request;
   request.reserve(8192);
@@ -188,10 +227,16 @@ void HTTPServer::handleClient(void *clientSocketPtr) {
       return false;
     }
 
+#ifdef _WIN32
     const int err = WSAGetLastError();
     if (err == WSAETIMEDOUT) {
       return false;
     }
+#else
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      return false;
+    }
+#endif
     return false;
   };
 

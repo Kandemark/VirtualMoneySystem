@@ -1,16 +1,19 @@
-#include "AbuseDetector.h"
+#ifndef ABUSE_DETECTOR_H
+#define ABUSE_DETECTOR_H
 
-bool AbuseDetector::detectAbuse(const std::string& userId, const std::string& ipAddress) {
-    int score = getAbuseScore(userId);
-    return score > 50;
-}
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-void AbuseDetector::reportAbuse(const std::string& userId, const std::string& reason) {
-    abuseReports[userId].push_back(reason);
-    abuseScores[userId] = abuseScores[userId] + 10;
-}
+class AbuseDetector {
+public:
+    bool detectAbuse(const std::string& userId, const std::string& ipAddress);
+    void reportAbuse(const std::string& userId, const std::string& reason);
+    int getAbuseScore(const std::string& userId) const;
 
-int AbuseDetector::getAbuseScore(const std::string& userId) const {
-    auto it = abuseScores.find(userId);
-    return (it != abuseScores.end()) ? it->second : 0;
-}
+private:
+    std::unordered_map<std::string, std::vector<std::string>> abuseReports;
+    std::unordered_map<std::string, int> abuseScores;
+};
+
+#endif

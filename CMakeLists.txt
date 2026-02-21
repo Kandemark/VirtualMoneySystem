@@ -82,15 +82,15 @@ add_executable(VirtualMoneySystem
 
 # Link libraries
 target_link_libraries(VirtualMoneySystem
-    core_lib
-    database_lib
-    transactions_lib
-    scheduler_lib
-    auth_lib
     api_lib
     analytics_lib
-    currency_lib
     fees_lib
+    currency_lib
+    auth_lib
+    scheduler_lib
+    transactions_lib
+    database_lib
+    core_lib
 )
 
 message(STATUS "========================================")

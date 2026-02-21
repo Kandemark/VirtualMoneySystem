@@ -1,7 +1,7 @@
 #include "BlockValidator.h"
 
 bool BlockValidator::validateBlock(const std::string& blockHash, const std::string& blockData) {
-    return blockHash.length() > 0 && blockData.length() > 0;
+    return !blockHash.empty() && !blockData.empty();
 }
 
 bool BlockValidator::validateTransaction(const std::string& txHash) {
@@ -9,5 +9,6 @@ bool BlockValidator::validateTransaction(const std::string& txHash) {
 }
 
 int BlockValidator::getConfirmations(const std::string& txHash) {
+    (void)txHash;
     return 12;
 }

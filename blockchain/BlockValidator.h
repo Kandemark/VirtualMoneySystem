@@ -1,13 +1,13 @@
-#include "BlockValidator.h"
+#ifndef BLOCK_VALIDATOR_H
+#define BLOCK_VALIDATOR_H
 
-bool BlockValidator::validateBlock(const std::string& blockHash, const std::string& blockData) {
-    return blockHash.length() > 0 && blockData.length() > 0;
-}
+#include <string>
 
-bool BlockValidator::validateTransaction(const std::string& txHash) {
-    return txHash.length() == 66;
-}
+class BlockValidator {
+public:
+    bool validateBlock(const std::string& blockHash, const std::string& blockData);
+    bool validateTransaction(const std::string& txHash);
+    int getConfirmations(const std::string& txHash);
+};
 
-int BlockValidator::getConfirmations(const std::string& txHash) {
-    return 12;
-}
+#endif

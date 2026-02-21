@@ -1,6 +1,7 @@
 #include "AbuseDetector.h"
 
 bool AbuseDetector::detectAbuse(const std::string& userId, const std::string& ipAddress) {
+    (void)ipAddress;
     int score = getAbuseScore(userId);
     return score > 50;
 }
