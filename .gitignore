@@ -5,6 +5,174 @@ build/
 *.so
 *.exe
 *.dll
+# --- Build output ---
+build/
+build_test/
+cache/
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.out
+*.a
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.idb
+*.mod
+*.cmd
+*.dylib
+*.app
+*.dSYM/
+
+# --- CMake ---
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CMakeScripts/
+CMakeUserPresets.json
+CMakePresets.json.user
+
+# --- Visual Studio ---
+.vs/
+*.vcxproj*
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.VC.opendb
+ipch/
+*.ncb
+*.aps
+*.psess
+*.vsp
+*.vspx
+*.vspscc
+*.vssscc
+*.cache
+*.dbmdl
+*.dbproj.schemaview
+*.pfx
+*.publish.xml
+TestResults/
+*.tlog
+*.log
+*.lastbuildstate
+*.VC.db
+*.VC.opendb
+
+# --- JetBrains/CLion ---
+.idea/
+.idea_modules/
+.idea/*
+cmake-build-*/
+.cmake/
+.ccls-cache/
+.vscode/
+
+# --- OS generated files ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+__MACOSX/
+
+# --- Python/Node/Other ---
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+*.orig
+*.rej
+*.class
+*.jar
+node_modules/
+
+# --- Logs and reports ---
+*.log
+*.trace
+*.pid
+*.seed
+*.pid.lock
+*.coverage
+*.gcov
+*.gcda
+*.gcno
+*.profraw
+*.profdata
+*.out
+*.err
+*.stackdump
+
+# --- Backups ---
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# --- Miscellaneous ---
+*.orig
+*.rej
+*.patch
+*.diff
+*.old
+*.save
+*.sublime-workspace
+*.sublime-project
+
+# --- Ignore secrets/configs ---
+*.env
+*.env.*
+secrets/
+config/local*
+
+# --- Ignore test scripts and outputs ---
+test_api.bat
+test_auth.bat
+*.testoutput
+
+# --- Ignore generated documentation ---
+docs/html/
+docs/latex/
+docs/xml/
+
+# --- Ignore database and data files ---
+*.sqlite*
+*.db
+*.db3
+*.sql
+*.csv
+*.tsv
+*.dat
+*.data
+
+# --- Ignore user-specific files ---
+*.iml
+*.ipr
+*.iws
+
+# --- Ignore other project-specific files ---
+start.bat
+build_cli.bat
+
+# --- End of .gitignore ---
 
 # C/C++ specific
 *.out
@@ -33,3 +201,21 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 CMakePresets.json.user
+
+
+# Build outputs
+*.o
+dist/
+
+# Databases / binaries
+*.db
+*.bin
+*.gguf
+
+# Python
+__pycache__/
+*.pyc
+
+# VS / IDE
+.vs/
+.idea/
