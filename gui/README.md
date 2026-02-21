@@ -20,3 +20,8 @@ python -m http.server 9090 -d gui
 - Deposit / withdraw / balance
 - Transfer
 - FX conversion
+
+- Policy evaluation
+- Asset market quote (forex/equity/crypto/commodity/bills)
+- Profit optimization planner
+- Role-based screen visibility (individual, organization, corporation, SACCO, government, third-party)

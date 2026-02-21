@@ -25,7 +25,7 @@ Total empty files detected: **0**
 - `cards`: 6 code/header files
 - `cbdc`: 2 code/header files
 - `client`: 1 code/header files
-- `compliance`: 30 code/header files
+- `compliance`: 33 code/header files
 - `config`: 1 code/header files
 - `contracts`: 10 code/header files
 - `core`: 28 code/header files
@@ -75,7 +75,7 @@ Total empty files detected: **0**
 - `subscriptions`: 14 code/header files
 - `support`: 10 code/header files
 - `tax`: 6 code/header files
-- `tests`: 19 code/header files
+- `tests`: 21 code/header files
 - `trading`: 2 code/header files
 - `transactions`: 10 code/header files
 - `treasury`: 2 code/header files
@@ -85,7 +85,7 @@ Total empty files detected: **0**
 
 ## Cross-Module Include Connectivity (from .cpp files)
 
-- `api` -> auth, currency, fees, security
+- `api` -> auth, compliance, currency, fees, security
 - `root` -> analytics, api, core, database, transactions
 - `tests` -> compliance, contracts, core, disputes, export, gateway, history, integrations, localization, platform_clients, plugins, policy_matrix
 
