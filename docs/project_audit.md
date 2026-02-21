@@ -75,7 +75,7 @@ Total empty files detected: **0**
 - `subscriptions`: 14 code/header files
 - `support`: 10 code/header files
 - `tax`: 6 code/header files
-- `tests`: 18 code/header files
+- `tests`: 19 code/header files
 - `trading`: 2 code/header files
 - `transactions`: 10 code/header files
 - `treasury`: 2 code/header files
@@ -87,7 +87,7 @@ Total empty files detected: **0**
 
 - `api` -> auth, currency, fees, security
 - `root` -> analytics, api, core, database, transactions
-- `tests` -> core
+- `tests` -> compliance, contracts, core, disputes, export, gateway, history, integrations, localization, platform_clients, plugins, policy_matrix
 
 ## Recommended Next Steps
 
