@@ -2,6 +2,11 @@
 
 // Processes a transaction by withdrawing from the sender and depositing to the receiver.
 bool TransactionEngine::processTransaction(Wallet& senderWallet, Wallet& receiverWallet, double amount) {
+    // Reject invalid transaction amounts.
+    if (amount <= 0) {
+        return false;
+    }
+
     // First, check if the currencies of the two wallets match.
     // If they don't, the transaction cannot proceed.
     if (senderWallet.getCurrency() != receiverWallet.getCurrency()) {

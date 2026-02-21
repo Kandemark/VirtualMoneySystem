@@ -1,6 +1,7 @@
 #include "../core/Wallet.h"
 #include <cassert>
 #include <iostream>
+#include <stdexcept>
 
 void testWallet() {
     // Test constructor
@@ -27,6 +28,31 @@ void testWallet() {
     success = wallet.withdraw(120.0);
     assert(success);
     assert(wallet.getBalance() == 0.0);
+
+    // Test validation exceptions
+    bool threw = false;
+    try {
+        wallet.deposit(0.0);
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    assert(threw);
+
+    threw = false;
+    try {
+        wallet.withdraw(-1.0);
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    assert(threw);
+
+    threw = false;
+    try {
+        Wallet invalidWallet("user2", "USD", -10.0);
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    assert(threw);
 
     std::cout << "Wallet tests passed!" << std::endl;
 }
