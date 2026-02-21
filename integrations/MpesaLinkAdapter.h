@@ -10,7 +10,7 @@
 
 class MpesaLinkAdapter {
 public:
-    bool initiate STKPush(const std::string& phoneNumber, double amount);
+    bool initiateSTKPush(const std::string& phoneNumber, double amount);
     std::string checkTransactionStatus(const std::string& checkoutRequestId);
     bool registerC2BURL(const std::string& shortCode, const std::string& callbackURL);
 };
